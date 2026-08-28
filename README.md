@@ -143,12 +143,5 @@ Listed honestly, so nobody expects them:
 
 ---
 
-## Tested
-
-An automated suite signs in as each of the six roles and requests every page:
-99 checks pass on SQLite and 99 on MariaDB 10.11, with no PHP warnings. It also
-confirms the super admin stays invisible to an administrator, that the kitchen
-account is refused everywhere except the kitchen, and that a POST without a CSRF
-token is rejected.
 
 
