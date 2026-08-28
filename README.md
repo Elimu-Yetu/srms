@@ -64,7 +64,7 @@ students. Totals appear while typing.
 
 ```
 index.php              Single entry point. Every request goes through here.
-install.php            First-time setup. DELETE IT once the centre is live.
+
 app/
   config.php           Database choice and centre details — the one file you edit
   routes.php           Every page, who may open it, and the sidebar
