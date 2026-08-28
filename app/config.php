@@ -1,18 +1,5 @@
 <?php
-/**
- * Elimu Yetu SRMS — configuration
- * Kituo cha Jamii | "Ninaweza, nitafanya, najiamini"
- *
- * EDIT THIS FILE ONCE, before running install.php
- */
 
-// ── Database ────────────────────────────────────────────────────────────────
-// 'sqlite' = zero setup, one file, perfect for a single centre PC (recommended
-//            to start; no MySQL install needed).
-// 'mysql'  = full LAMP as per the approved proposal. Create the database first:
-//            CREATE DATABASE elimu_srms CHARACTER SET utf8mb4;
-// Switch to 'mysql' when you have created the MySQL database and user below.
-// For now the file is updated to use MySQL; change credentials as required.
 define('DB_DRIVER', 'mysql');
 
 // SQLite: file lives outside the pages that get served.
