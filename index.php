@@ -1,0 +1,80 @@
+<?php
+/**
+ * Elimu Yetu SRMS — single entry point.
+ * Every request lands here: bootstrap → resolve route → check access → render.
+ */
+
+require __DIR__ . '/app/config.php';
+
+date_default_timezone_set(TIMEZONE);
+if (DEBUG) {
+    ini_set('display_errors', '1');
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', '0');
+    ini_set('log_errors', '1');
+    ini_set('error_log', STORAGE_PATH . '/logs/php-errors.log');
+}
+
+require __DIR__ . '/app/lib/db.php';
+require __DIR__ . '/app/lib/helpers.php';
+require __DIR__ . '/app/lib/auth.php';
+require __DIR__ . '/app/lib/schema.php';
+require __DIR__ . '/app/routes.php';
+
+// Not installed yet? Send them to the installer.
+if (!table_exists('settings')) {
+    header('Location: install.php');
+    exit;
+}
+
+start_session();
+
+$routes  = routes();
+$current = getStr('r', 'dashboard');
+if (!isset($routes[$current])) {
+    http_response_code(404);
+    $current = is_logged_in() ? 'dashboard' : 'login';
+    flash('warn', 'That page does not exist. Here is your dashboard instead.');
+}
+$route  = $routes[$current];
+$layout = $route['layout'] ?? 'app';
+
+// ── Access control, before a single line of the page runs ───────────────────
+if (empty($route['public'])) {
+    require_login();
+    if (isset($route['cap'])) {
+        if (!can($route['cap'])) deny();
+    } elseif (isset($route['roles'])) {
+        if (!in_array(role(), $route['roles'], true)) deny();
+    } else {
+        deny();
+    }
+} elseif (is_logged_in() && $current === 'login') {
+    redirect('dashboard');
+}
+
+// Signed-in users get sent to a page they can actually use.
+if ($current === 'dashboard' && is_role('kitchen')) $current = 'kitchen.index';
+
+$page_title   = $routes[$current]['title'] ?? APP_NAME;
+$page_sub     = '';
+$page_actions = '';
+$page_file    = BASE_PATH . '/pages/' . $routes[$current]['file'];
+
+if (!is_file($page_file)) {
+    http_response_code(500);
+    exit('Page file missing: ' . e($routes[$current]['file']));
+}
+
+// 'raw' pages send their own output (file streams, CSV, redirects).
+if ($layout === 'raw') {
+    require $page_file;
+    exit;
+}
+
+ob_start();
+require $page_file;
+$content = ob_get_clean();
+
+require BASE_PATH . '/views/layout_' . $layout . '.php';

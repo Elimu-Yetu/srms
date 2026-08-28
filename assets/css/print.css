@@ -1,0 +1,222 @@
+/* ==========================================================================
+   Printable documents: registration slips, attendance registers, monthly
+   reports, ID cards (CR80 85.6 x 54 mm) and certificates (A4 landscape).
+   Screen shows a paper preview; print sends exactly the paper.
+   ========================================================================== */
+
+:root {
+  --ey-orange: #EE7A1B;
+  --ey-green:  #17915A;
+  --ey-blue:   #1567AE;
+  --ink:       #14231D;
+  --ink-soft:  #55665F;
+  --line:      #D8DEDA;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; padding: 24px;
+  background: #E9EBE7;
+  font-family: var(--font); color: var(--ink); font-size: 13px; line-height: 1.5;
+}
+
+.printbar {
+  max-width: 820px; margin: 0 auto 18px;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  font-size: 13px;
+}
+.printbar__hint { color: #56655F; margin-right: auto; }
+.pbtn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: 11px; border: 1px solid #C9D0CB;
+  background: #fff; color: var(--ink); font: inherit; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  box-shadow: 0 2px 8px -4px rgba(20,35,29,.3);
+}
+.pbtn--primary { background: var(--ey-blue); color: #fff; border-color: transparent; }
+.pbtn svg { width: 16px; height: 16px; }
+
+/* ── Paper sheet ─────────────────────────────────────────────────────────── */
+.sheet {
+  background: #fff; margin: 0 auto 20px;
+  box-shadow: 0 14px 40px -18px rgba(20,35,29,.45);
+  position: relative;
+}
+.sheet--a4  { width: 210mm; min-height: 297mm; padding: 16mm 15mm; }
+.sheet--a4l { width: 297mm; min-height: 210mm; padding: 12mm; }
+
+.docribbon {
+  height: 5px; display: flex; margin-bottom: 10mm;
+}
+.docribbon i { flex: 1; }
+.docribbon i:nth-child(1) { background: var(--ey-orange); }
+.docribbon i:nth-child(2) { background: var(--ey-green); }
+.docribbon i:nth-child(3) { background: var(--ey-blue); }
+
+.dochead { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 8mm; }
+.dochead__mark {
+  width: 54px; height: 54px; border-radius: 14px; flex: none;
+  display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px;
+  background: linear-gradient(145deg, var(--ey-orange), var(--ey-green) 55%, var(--ey-blue));
+}
+.dochead__org { font-size: 17px; font-weight: 750; letter-spacing: -.01em; line-height: 1.15; }
+.dochead__motto { font-style: italic; color: var(--ink-soft); font-size: 12px; }
+.dochead__meta { font-size: 11px; color: var(--ink-soft); margin-top: 3px; }
+.dochead__right { margin-left: auto; text-align: right; }
+.doctitle {
+  font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: .16em;
+  color: var(--ey-blue);
+}
+.docref { font-family: var(--mono); font-size: 12px; margin-top: 2px; }
+
+.docsection {
+  font-size: 10.5px; font-weight: 750; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--ink-soft); border-bottom: 1px solid var(--line);
+  padding-bottom: 4px; margin: 7mm 0 3mm;
+}
+.docsection:first-of-type { margin-top: 0; }
+
+table.doc { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.doc th, table.doc td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; }
+table.doc th { background: #F2F5F3; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; }
+table.doc td.num, table.doc th.num { text-align: right; font-family: var(--mono); }
+table.doc tfoot td { font-weight: 700; background: #F7F9F8; }
+
+.pairs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 12mm; }
+.pair { display: flex; gap: 6px; padding: 3.2mm 0; border-bottom: 1px dotted var(--line); font-size: 12.5px; }
+.pair__k { color: var(--ink-soft); min-width: 38mm; }
+.pair__v { font-weight: 600; }
+.pair--wide { grid-column: 1 / -1; }
+
+.signrow { display: flex; gap: 12mm; margin-top: 14mm; }
+.signrow > div { flex: 1; }
+.signline { border-top: 1px solid var(--ink); padding-top: 3px; margin-top: 14mm; font-size: 11.5px; }
+.docfoot {
+  position: absolute; bottom: 10mm; left: 15mm; right: 15mm;
+  border-top: 1px solid var(--line); padding-top: 3mm;
+  font-size: 10px; color: var(--ink-soft); display: flex; justify-content: space-between;
+}
+
+/* ── ID card, CR80 ───────────────────────────────────────────────────────── */
+.cardsheet { display: flex; flex-wrap: wrap; gap: 6mm; max-width: 190mm; margin: 0 auto; }
+.idcard {
+  width: 85.6mm; height: 54mm; flex: none;
+  background: #fff; border-radius: 3.5mm; overflow: hidden;
+  position: relative; color: var(--ink);
+  box-shadow: 0 8px 24px -12px rgba(20,35,29,.5);
+  display: flex; flex-direction: column;
+}
+.idcard__top {
+  padding: 2.6mm 3.2mm; display: flex; gap: 2.4mm; align-items: center;
+  background: linear-gradient(120deg, var(--ey-blue), var(--ey-green));
+  color: #fff;
+}
+.idcard__mark {
+  width: 8mm; height: 8mm; border-radius: 2mm; flex: none;
+  background: rgba(255,255,255,.22); border: .3mm solid rgba(255,255,255,.6);
+  display: grid; place-items: center; font-size: 7.5pt; font-weight: 800;
+}
+.idcard__org { font-size: 7.6pt; font-weight: 750; line-height: 1.1; letter-spacing: .01em; }
+.idcard__kind { font-size: 5.6pt; text-transform: uppercase; letter-spacing: .18em; opacity: .92; }
+.idcard__body { flex: 1; display: flex; gap: 3mm; padding: 3mm 3.2mm 2mm; }
+.idcard__photo {
+  width: 20mm; height: 25mm; flex: none; border-radius: 1.8mm;
+  background: #EDF0EE; border: .3mm solid var(--line);
+  object-fit: cover; display: grid; place-items: center;
+  color: #9AA7A1; font-size: 6pt; text-align: center;
+}
+.idcard__fields { min-width: 0; flex: 1; }
+.idcard__name { font-size: 10pt; font-weight: 750; line-height: 1.12; letter-spacing: -.01em; }
+.idcard__row { font-size: 6.6pt; color: var(--ink-soft); margin-top: 1.1mm; }
+.idcard__row b { color: var(--ink); font-weight: 650; }
+.idcard__no {
+  font-family: var(--mono); font-size: 8.4pt; font-weight: 700; letter-spacing: .04em;
+  margin-top: 1.4mm;
+}
+.idcard__foot {
+  display: flex; align-items: center; gap: 2mm;
+  padding: 1.4mm 3.2mm; border-top: .3mm solid var(--line);
+  font-size: 5.8pt; color: var(--ink-soft);
+}
+.idcard__bars { display: flex; gap: .35mm; height: 5mm; margin-left: auto; align-items: flex-end; }
+.idcard__bars i { width: .5mm; background: var(--ink); display: block; }
+.idcard__stripe { height: 1.6mm; display: flex; }
+.idcard__stripe i { flex: 1; }
+.idcard__stripe i:nth-child(1) { background: var(--ey-orange); }
+.idcard__stripe i:nth-child(2) { background: var(--ey-green); }
+.idcard__stripe i:nth-child(3) { background: var(--ey-blue); }
+
+/* ── Certificate, A4 landscape ───────────────────────────────────────────── */
+.cert {
+  width: 297mm; height: 210mm; padding: 0; margin: 0 auto 20px;
+  background: #fff; position: relative; overflow: hidden;
+  box-shadow: 0 18px 50px -20px rgba(20,35,29,.5);
+}
+.cert__frame {
+  position: absolute; inset: 9mm;
+  border: .6mm solid var(--ey-blue);
+  outline: .25mm solid var(--ey-green); outline-offset: 2.2mm;
+}
+.cert__wash {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(60mm 40mm at 12% 8%,  rgba(238,122,27,.11), transparent 70%),
+    radial-gradient(60mm 40mm at 88% 92%, rgba(21,103,174,.11), transparent 70%),
+    radial-gradient(70mm 45mm at 50% 55%, rgba(23,145,90,.06), transparent 72%);
+}
+.cert__seal {
+  position: absolute; right: 24mm; bottom: 30mm;
+  width: 30mm; height: 30mm; border-radius: 50%;
+  border: .5mm solid var(--ey-orange);
+  display: grid; place-items: center; text-align: center;
+  background: rgba(255,255,255,.7);
+  transform: rotate(-8deg);
+}
+.cert__seal div { font-size: 6.4pt; letter-spacing: .12em; text-transform: uppercase; color: var(--ey-orange); font-weight: 750; line-height: 1.5; }
+.cert__inner { position: relative; padding: 22mm 26mm; height: 100%; text-align: center; display: flex; flex-direction: column; }
+.cert__org { font-size: 14pt; font-weight: 750; letter-spacing: .04em; }
+.cert__motto { font-family: var(--serif); font-style: italic; color: var(--ink-soft); font-size: 10.5pt; }
+.cert__kicker {
+  font-size: 9pt; text-transform: uppercase; letter-spacing: .38em;
+  color: var(--ey-blue); margin: 9mm 0 2mm; font-weight: 700;
+}
+.cert__title { font-family: var(--serif); font-size: 30pt; line-height: 1.1; font-weight: 400; }
+.cert__lead { font-size: 10.5pt; color: var(--ink-soft); margin-top: 7mm; }
+.cert__name {
+  font-family: var(--serif); font-size: 27pt; font-weight: 600;
+  margin: 3mm 0 1mm; padding-bottom: 3mm;
+  border-bottom: .3mm solid var(--line); display: inline-block; min-width: 120mm;
+}
+.cert__course { font-size: 13pt; font-weight: 650; margin-top: 5mm; }
+.cert__detail { font-size: 10pt; color: var(--ink-soft); margin-top: 2mm; }
+.cert__signs { display: flex; gap: 30mm; justify-content: center; margin-top: auto; padding-bottom: 4mm; }
+.cert__sign { min-width: 60mm; }
+.cert__sign b { display: block; border-top: .3mm solid var(--ink); padding-top: 2mm; font-size: 10.5pt; }
+.cert__sign span { font-size: 8.6pt; color: var(--ink-soft); }
+.cert__verify {
+  position: absolute; left: 22mm; bottom: 13mm;
+  font-size: 7.6pt; color: var(--ink-soft); text-align: left;
+}
+.cert__verify b { font-family: var(--mono); font-size: 9pt; color: var(--ink); letter-spacing: .06em; }
+
+/* ── Print rules ─────────────────────────────────────────────────────────── */
+@media print {
+  body { background: #fff; padding: 0; }
+  .printbar, .no-print { display: none !important; }
+  .sheet, .cert, .idcard { box-shadow: none; margin: 0 auto; }
+  .sheet--a4, .sheet--a4l { min-height: 0; }
+  .cardsheet { gap: 4mm; max-width: none; }
+  .idcard { border: .2mm dashed #B9C2BD; page-break-inside: avoid; }
+  .cert { page-break-after: always; }
+  table.doc { page-break-inside: auto; }
+  table.doc tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+}
+
+/* Centred numeric cells inside document tables */
+table.doc th.center, table.doc td.center { text-align: center; font-family: var(--mono); }
+table.doc tfoot th { background: #F7F9F8; font-weight: 700; }
