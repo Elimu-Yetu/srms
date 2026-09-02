@@ -48,7 +48,6 @@ $me = current_user();   // reload after any save
 $student = $me['student_id'] ? row('SELECT * FROM students WHERE id = ?', [$me['student_id']]) : null;
 $dept    = $me['department_id'] ? row('SELECT name FROM departments WHERE id = ?', [$me['department_id']]) : null;
 $courses = count(my_course_ids());
-$recent  = rows('SELECT action, entity, details, created_at FROM audit_logs WHERE user_id = ? ORDER BY id DESC LIMIT 8', [user_id()]);
 
 $page_title = 'My account';
 $page_sub   = e(ROLES[$me['role']] ?? $me['role']) . ($dept ? ' · ' . e($dept['name']) : '');
@@ -140,22 +139,5 @@ $page_sub   = e(ROLES[$me['role']] ?? $me['role']) . ($dept ? ' · ' . e($dept['
       </div>
     </div>
 
-    <?php if ($recent): ?>
-      <div class="panel">
-        <div class="panel__head"><h2>Your recent activity</h2></div>
-        <table class="data compact">
-          <tbody>
-          <?php foreach ($recent as $r): ?>
-            <tr>
-              <td class="tiny mono nowrap" style="color:var(--ink-faint)"><?= e(d($r['created_at'], 'd M H:i')) ?></td>
-              <td class="tiny"><?= e(ucfirst(str_replace('_', ' ', $r['action']))) ?>
-                <?php if ($r['details']): ?><div class="tiny muted"><?= e($r['details']) ?></div><?php endif; ?>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-    <?php endif; ?>
   </div>
 </div>
