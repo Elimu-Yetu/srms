@@ -8,7 +8,6 @@ if (!$me) { echo '<div class="alert alert--warn"><div>Your login is not linked t
 $byCourse = rows("SELECT c.code, c.name,
                     COUNT(a.id) total,
                     SUM(CASE WHEN a.status='P' THEN 1 ELSE 0 END) p,
-                    SUM(CASE WHEN a.status='L' THEN 1 ELSE 0 END) l,
                     SUM(CASE WHEN a.status='E' THEN 1 ELSE 0 END) x,
                     SUM(CASE WHEN a.status='A' THEN 1 ELSE 0 END) ab
                   FROM attendance a
@@ -33,7 +32,7 @@ $page_sub = 'You need at least ' . $threshold . '% attendance to sit assessments
 <?php else: ?>
   <div class="grid grid--2">
     <?php foreach ($byCourse as $a):
-      $t = (int) $a['total']; $rate = pct((int) $a['p'] + (int) $a['l'], $t); ?>
+      $t = (int) $a['total']; $rate = pct((int) $a['p'], $t); ?>
       <div class="panel">
         <div class="panel__body">
           <div style="display:flex;align-items:baseline;gap:10px">
@@ -48,13 +47,11 @@ $page_sub = 'You need at least ' . $threshold . '% attendance to sit assessments
           </div>
           <div class="segbar" style="margin-top:12px">
             <span class="seg-p" style="width:<?= pct((int) $a['p'], $t) ?>%"></span>
-            <span class="seg-l" style="width:<?= pct((int) $a['l'], $t) ?>%"></span>
             <span class="seg-e" style="width:<?= pct((int) $a['x'], $t) ?>%"></span>
             <span class="seg-a" style="width:<?= pct((int) $a['ab'], $t) ?>%"></span>
           </div>
           <div class="seglegend">
             <span><i class="seg-p"></i>Present <?= (int) $a['p'] ?></span>
-            <span><i class="seg-l"></i>Late <?= (int) $a['l'] ?></span>
             <span><i class="seg-e"></i>Excused <?= (int) $a['x'] ?></span>
             <span><i class="seg-a"></i>Absent <?= (int) $a['ab'] ?></span>
           </div>
@@ -70,7 +67,7 @@ $page_sub = 'You need at least ' . $threshold . '% attendance to sit assessments
         <thead><tr><th>Date</th><th>Course</th><th>Mark</th><th>Remark</th></tr></thead>
         <tbody>
         <?php foreach ($recent as $r):
-          $tone = ['P' => 'green', 'L' => 'orange', 'E' => 'blue', 'A' => 'red'][$r['status']] ?? 'neutral'; ?>
+          $tone = ['P' => 'green', 'E' => 'blue', 'A' => 'red'][$r['status']] ?? 'neutral'; ?>
           <tr>
             <td class="mono tiny"><?= e(d($r['session_date'], 'D d M Y')) ?></td>
             <td class="tiny"><?= e($r['name']) ?></td>

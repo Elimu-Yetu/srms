@@ -25,9 +25,10 @@ $class = rows("SELECT e.id AS enrolment_id, s.id, s.first_name, s.last_name, s.s
                WHERE e.course_id = ? ORDER BY s.first_name, s.last_name", [$courseId]);
 
 $marks = [];
-foreach (rows('SELECT a.enrolment_id, a.session_date, a.status FROM attendance a
-               WHERE a.course_id = ? AND a.session_date BETWEEN ? AND ?', [$courseId, $from, $to]) as $m) {
-    $marks[(int) $m['enrolment_id']][$m['session_date']] = $m['status'];
+$data_rows = rows('SELECT a.enrolment_id, a.session_date, a.status FROM attendance a
+         WHERE a.course_id = ? AND a.session_date BETWEEN ? AND ?', [$courseId, $from, $to]);
+foreach ($data_rows as $m) {
+  $marks[(int) $m['enrolment_id']][$m['session_date']] = $m['status'];
 }
 $threshold = (int) setting('attendance_threshold', '80');
 $page_sub  = e($course['code']) . ' · ' . e(month_label($month)) . ' · ' . count($dates) . ' session' . (count($dates) === 1 ? '' : 's');
@@ -66,7 +67,7 @@ $page_actions = '<a class="btn" target="_blank" href="' . e(url('reports.show', 
         <thead>
           <tr>
             <th style="min-width:180px">Student</th>
-            <?php foreach ($dates as $dt): ?>
+              <?php foreach ($dates as $dt): ?>
               <th class="center mono" title="<?= e(d($dt)) ?>"><?= e(date('d', strtotime($dt))) ?></th>
             <?php endforeach; ?>
             <th class="right">Rate</th>
@@ -80,8 +81,8 @@ $page_actions = '<a class="btn" target="_blank" href="' . e(url('reports.show', 
                 <div class="tiny mono muted"><?= e($s['student_no']) ?></div></td>
             <?php foreach ($dates as $dt):
               $code = $marks[$eid][$dt] ?? null;
-              if ($code) { $tot++; if (in_array($code, ['P', 'L'], true)) $ok++; }
-              $tone = ['P' => 'green', 'L' => 'orange', 'E' => 'blue', 'A' => 'red'][$code] ?? 'neutral'; ?>
+              if ($code) { $tot++; if ($code === 'P') $ok++; }
+              $tone = ['P' => 'green', 'E' => 'blue', 'A' => 'red'][$code] ?? 'neutral'; ?>
               <td class="center"><?= $code ? badge($code, $tone) : '<span class="muted tiny">·</span>' ?></td>
             <?php endforeach; ?>
             <?php $rate = pct($ok, $tot); ?>
@@ -92,7 +93,7 @@ $page_actions = '<a class="btn" target="_blank" href="' . e(url('reports.show', 
       </table>
     </div>
     <div class="panel__foot">
-      <span class="tiny muted">P present · L late · E excused · A absent · rate counts present and late as attended</span>
+      <span class="tiny muted">P present · E excused · A absent · rate counts present as attended</span>
     </div>
   <?php endif; ?>
 </div>

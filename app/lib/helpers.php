@@ -168,13 +168,36 @@ function audit(string $action, string $entity = '', $entityId = '', string $deta
 }
 
 // ── Reference numbers ───────────────────────────────────────────────────────
-/** EY-2026-0001 — sequential within the year, gap-tolerant. */
-function next_student_no(): string
+/**
+ * Intake number (1–4) for 4 intakes in a year:
+ * 1: Jan–Mar, 2: Apr–Jun, 3: Jul–Sep, 4: Oct–Dec.
+ */
+function current_intake(?string $date = null): int
 {
-    $year   = date('Y');
-    $prefix = STUDENT_NO_PREFIX . '-' . $year . '-';
-    $last   = val('SELECT student_no FROM students WHERE student_no LIKE ? ORDER BY student_no DESC LIMIT 1', [$prefix . '%']);
-    $seq    = $last ? ((int) substr($last, -4)) + 1 : 1;
+    $m = (int) ($date ? date('n', strtotime($date)) : date('n'));
+    return (int) min(4, max(1, (int) ceil($m / 3)));
+}
+
+function intake_label(int $intake): string
+{
+    $labels = [
+        1 => 'Intake 01 (Jan – Mar)',
+        2 => 'Intake 02 (Apr – Jun)',
+        3 => 'Intake 03 (Jul – Sep)',
+        4 => 'Intake 04 (Oct – Dec)',
+    ];
+    return $labels[$intake] ?? ('Intake ' . str_pad((string) $intake, 2, '0', STR_PAD_LEFT));
+}
+
+/** EY-00-0000-0000 (e.g. EY-01-2026-0001) — sequential within intake and year, gap-tolerant. */
+function next_student_no(?int $intake = null, ?int $year = null): string
+{
+    $intake    = $intake ?: current_intake();
+    $year      = $year   ?: (int) date('Y');
+    $intakePad = str_pad((string) $intake, 2, '0', STR_PAD_LEFT);
+    $prefix    = STUDENT_NO_PREFIX . '-' . $intakePad . '-' . $year . '-';
+    $last      = val('SELECT student_no FROM students WHERE student_no LIKE ? ORDER BY student_no DESC LIMIT 1', [$prefix . '%']);
+    $seq       = $last ? ((int) substr($last, -4)) + 1 : 1;
     return $prefix . str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
 }
 
@@ -250,7 +273,7 @@ function status_tone(string $status): string
 
 function attendance_label(string $code): string
 {
-    return ['P' => 'Present', 'A' => 'Absent', 'L' => 'Late', 'E' => 'Excused'][$code] ?? $code;
+    return ['P' => 'Present', 'A' => 'Absent', 'E' => 'Excused'][$code] ?? $code;
 }
 
 /** Paginate: returns [limit, offset, page]. */

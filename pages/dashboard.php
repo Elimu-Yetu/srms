@@ -346,12 +346,11 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
       $next  = rows('SELECT t.*, c.name AS course FROM timetable t JOIN courses c ON c.id = t.course_id
                      WHERE t.day_of_week = ? AND t.course_id IN (SELECT course_id FROM enrolments WHERE student_id = ?)
                      ORDER BY t.start_time', [$today, $s['id']]);
-      $certs = (int) val('SELECT COUNT(*) FROM certificates WHERE student_id = ? AND status = ?', [$s['id'], 'valid'], 0);
       $notices = rows('SELECT n.*, u.name AS author FROM notices n LEFT JOIN users u ON u.id = n.posted_by
                        WHERE n.course_id IS NULL OR n.course_id IN (SELECT course_id FROM enrolments WHERE student_id = ?)
                        ORDER BY n.created_at DESC LIMIT 4', [$s['id']]);
   ?>
-    <div class="grid grid--4">
+    <div class="grid grid--3">
       <div class="stat">
         <div class="stat__label">My number</div>
         <div class="stat__value" style="font-size:20px"><?= e($s['student_no']) ?></div>
@@ -366,11 +365,6 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
         <div class="stat__label">Enrolled courses</div>
         <div class="stat__value"><?= count($enrols) ?></div>
         <div class="stat__note">See topics and facilitators</div>
-      </a>
-      <a class="stat stat--ink" href="<?= e(url('certificates.index')) ?>">
-        <div class="stat__label">Certificates</div>
-        <div class="stat__value"><?= $certs ?></div>
-        <div class="stat__note"><?= $certs ? 'Ready to download' : 'None issued yet' ?></div>
       </a>
     </div>
 

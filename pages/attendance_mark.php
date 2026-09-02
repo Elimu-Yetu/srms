@@ -25,7 +25,7 @@ if (is_post()) {
     $saved  = 0;
     foreach ($marks as $enrolmentId => $status) {
         $enrolmentId = (int) $enrolmentId;
-        if (!in_array($status, ['P', 'A', 'L', 'E'], true)) continue;
+        if (!in_array($status, ['P', 'A', 'E'], true)) continue;
         $belongs = val('SELECT 1 FROM enrolments WHERE id = ? AND course_id = ?', [$enrolmentId, $courseId]);
         if (!$belongs) continue;
 
@@ -109,7 +109,7 @@ $page_sub = e($course['code']) . ' · ' . e($course['name']) . ' · ' . e(d($dat
 
       <div class="toolbar" style="border-top:1px solid var(--line)">
         <span class="tiny muted" style="margin-right:auto">
-          <?= count($class) ?> student<?= count($class) === 1 ? '' : 's' ?> · P present · L late · E excused · A absent
+          <?= count($class) ?> student<?= count($class) === 1 ? '' : 's' ?> · P present · E excused · A absent
         </span>
         <button type="button" class="btn btn--sm btn--green" data-markall="P">Mark all present</button>
         <button type="button" class="btn btn--sm btn--ghost" data-markall="A">Mark all absent</button>
@@ -131,7 +131,7 @@ $page_sub = e($course['code']) . ' · ' . e($course['name']) . ' · ' . e(d($dat
               </td>
               <td>
                 <div class="att">
-                  <?php foreach (['P', 'L', 'E', 'A'] as $code):
+                  <?php foreach (['P', 'E', 'A'] as $code):
                     $checked = ($s['marked'] ?? 'P') === $code; ?>
                     <input type="radio" id="a<?= $eid . $code ?>" name="status[<?= $eid ?>]" value="<?= $code ?>" <?= $checked ? 'checked' : '' ?>>
                     <label for="a<?= $eid . $code ?>" title="<?= e(attendance_label($code)) ?>"><?= $code ?></label>

@@ -25,7 +25,6 @@ if (is_post()) {
     $f['code']           = strtoupper($f['code']);
     $f['department_id']  = postInt('department_id');
     $f['duration_weeks'] = max(1, postInt('duration_weeks', 12));
-    $f['fee_amount']     = (float) str_replace(',', '', post('fee_amount', '0'));
     $f['capacity']       = max(1, postInt('capacity', 25));
     $f['facilitator_id'] = postInt('facilitator_id') ?: null;
     $f['start_date']     = postNull('start_date');
@@ -47,7 +46,7 @@ if (is_post()) {
         $data = [
             'department_id' => $f['department_id'], 'code' => $f['code'], 'name' => $f['name'],
             'description' => $f['description'], 'duration_weeks' => $f['duration_weeks'],
-            'fee_amount' => $f['fee_amount'], 'capacity' => $f['capacity'],
+            'fee_amount' => 0, 'capacity' => $f['capacity'],
             'facilitator_id' => $f['facilitator_id'], 'start_date' => $f['start_date'],
             'end_date' => $f['end_date'], 'status' => $f['status'],
         ];
@@ -102,10 +101,7 @@ if (is_post()) {
         <label for="capacity">Capacity</label>
         <input id="capacity" name="capacity" type="number" min="1" max="500" value="<?= (int) $f['capacity'] ?>">
       </div>
-      <div class="field">
-        <label for="fee_amount">Fee (TZS)</label>
-        <input id="fee_amount" name="fee_amount" type="number" min="0" step="1000" value="<?= (int) $f['fee_amount'] ?>">
-      </div>
+
       <div class="field">
         <label for="facilitator_id">Facilitator</label>
         <select id="facilitator_id" name="facilitator_id">

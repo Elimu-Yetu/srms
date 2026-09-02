@@ -12,7 +12,7 @@ internet connection and no monthly cost.
 
 | Paper today | In the system |
 |---|---|
-| Registration forms in a box file | Student register with photo, guardian, national ID and an automatic number (`EY-2026-0001`) |
+| Registration forms in a box file | Student register with photo, guardian, national ID and an automatic number (`EY-01-2026-0001`) |
 | Handwritten attendance sheets | Daily register per class, with a rate per student and a flag below 80% |
 | Lesson plan notebooks handed to the office | Lesson plans submitted on screen; the line manager marks them reviewed or asks for changes |
 | Monthly reports typed in Word | A fixed monthly form per class, acknowledged by the line manager, printable for filing |

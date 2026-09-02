@@ -10,9 +10,10 @@ if ($id) {
     if (!is_admin() && (int) $rec['department_id'] !== my_department()) deny('That student is in another department.');
 }
 $isEdit = (bool) $rec;
+$selectedIntake = postInt('intake') ?: current_intake();
 $page_title = $isEdit ? 'Edit student file' : 'Register a student';
 $page_sub   = $isEdit ? e($rec['student_no']) . ' · ' . e($rec['first_name'] . ' ' . $rec['last_name'])
-                      : 'The next number will be <span class="mono">' . e(next_student_no()) . '</span>';
+                      : 'The next number will be <span class="mono">' . e(next_student_no($selectedIntake)) . '</span>';
 
 $depts   = rows('SELECT id, name FROM departments WHERE status = ? ORDER BY name', ['active']);
 $courses = rows('SELECT c.id, c.code, c.name, c.department_id, c.capacity,
@@ -33,13 +34,15 @@ if (is_post()) {
         if ($k !== 'photo') $f[$k] = post($k);
     }
 
+    $f['email'] = strtolower(trim($f['email']));
+
     if ($f['first_name'] === '') $errors[] = 'First name is required.';
     if ($f['last_name'] === '')  $errors[] = 'Last name is required.';
     if (!$f['department_id'])     $errors[] = 'Choose a department.';
     if ($f['email'] !== '' && !filter_var($f['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'That email address is not valid.';
     if ($f['dob'] !== '' && strtotime($f['dob']) > time()) $errors[] = 'Date of birth cannot be in the future.';
 
-    // Duplicate detection on national ID and phone, as required by the proposal
+    // Duplicate detection on national ID, phone and email
     if ($f['national_id'] !== '') {
         $dupe = row('SELECT id, student_no, first_name, last_name FROM students WHERE national_id = ? AND id <> ?',
                     [$f['national_id'], $id]);
@@ -50,6 +53,12 @@ if (is_post()) {
         $dupe = row('SELECT id, student_no, first_name, last_name FROM students WHERE phone = ? AND id <> ?',
                     [$f['phone'], $id]);
         if ($dupe) $errors[] = 'Phone number already on file for ' . e($dupe['first_name'] . ' ' . $dupe['last_name'])
+                             . ' (' . e($dupe['student_no']) . ').';
+    }
+    if ($f['email'] !== '') {
+        $dupe = row('SELECT id, student_no, first_name, last_name FROM students WHERE email = ? AND id <> ?',
+                    [$f['email'], $id]);
+        if ($dupe) $errors[] = 'Email address already belongs to ' . e($dupe['first_name'] . ' ' . $dupe['last_name'])
                              . ' (' . e($dupe['student_no']) . ').';
     }
 
@@ -74,7 +83,8 @@ if (is_post()) {
             flash('ok', 'Student file updated.');
             redirect('students.view', ['id' => $id]);
         } else {
-            $data['student_no']    = next_student_no();
+            $intake = postInt('intake') ?: current_intake();
+            $data['student_no']    = next_student_no($intake);
             $data['registered_by'] = user_id();
             $data['registered_at'] = now();
             $newId = insert('students', $data);
@@ -150,13 +160,14 @@ if (is_post()) {
             <div class="hint">Checked against existing files.</div>
           </div>
           <div class="field">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" value="<?= e($f['email']) ?>">
+            <label for="email">Email <?= badge('Optional', 'neutral') ?></label>
+            <input id="email" name="email" type="email" value="<?= e($f['email']) ?>" placeholder="Optional">
+            <div class="hint">Optional — used for portal login.</div>
           </div>
           <div class="field">
-            <label for="national_id">National ID / NIDA</label>
-            <input id="national_id" name="national_id" value="<?= e($f['national_id']) ?>">
-            <div class="hint">Used for duplicate detection.</div>
+            <label for="national_id">National ID / NIDA <?= badge('Optional', 'neutral') ?></label>
+            <input id="national_id" name="national_id" value="<?= e($f['national_id']) ?>" placeholder="Optional">
+            <div class="hint">Used for duplicate detection (optional).</div>
           </div>
           <div class="field span2">
             <label for="address">Address / ward</label>
@@ -182,7 +193,7 @@ if (is_post()) {
 
         <div class="field">
           <label for="notes">Office notes</label>
-          <textarea id="notes" name="notes" rows="3" placeholder="Anything the office should know — fee arrangement, referral, special needs."><?= e($f['notes']) ?></textarea>
+          <textarea id="notes" name="notes" rows="3" placeholder="Anything the office should know — referral, special needs, background."><?= e($f['notes']) ?></textarea>
         </div>
       </div>
     </div>
@@ -209,6 +220,16 @@ if (is_post()) {
 
           <?php if (!$isEdit): ?>
             <div class="field">
+              <label for="intake">Intake</label>
+              <select id="intake" name="intake">
+                <?php for ($i = 1; $i <= 4; $i++): ?>
+                  <option value="<?= $i ?>" <?= $selectedIntake === $i ? 'selected' : '' ?>><?= e(intake_label($i)) ?></option>
+                <?php endfor; ?>
+              </select>
+              <div class="hint">Determines the intake code in the student number.</div>
+            </div>
+
+            <div class="field">
               <label for="course_id">Enrol into a course now</label>
               <select id="course_id" name="course_id">
                 <option value="">Later</option>
@@ -230,7 +251,7 @@ if (is_post()) {
                 <option value="<?= $st ?>" <?= $f['status'] === $st ? 'selected' : '' ?>><?= ucfirst($st) ?></option>
               <?php endforeach; ?>
             </select>
-            <div class="hint">New applications start as <strong>pending</strong> until fees or documents are confirmed.</div>
+            <div class="hint">New applications start as <strong>pending</strong> until documents are confirmed.</div>
           </div>
         </div>
       </div>

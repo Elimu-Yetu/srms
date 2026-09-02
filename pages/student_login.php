@@ -1,9 +1,9 @@
 <?php
-/** Sign in */
+/** Student portal sign-in — registration number only. */
 $error = '';
 if (is_post()) {
     csrf_check();
-    $error = attempt_login(post('email'), $_POST['password'] ?? '');
+    $error = attempt_login(post('reg_no'), '');   // empty password = student quick-login
     if ($error === null) {
         $to = $_SESSION['intended'] ?? null;
         unset($_SESSION['intended']);
@@ -13,13 +13,12 @@ if (is_post()) {
     }
 }
 require_once BASE_PATH . '/views/icons.php';
-$hasUsers = (int) val('SELECT COUNT(*) FROM users', [], 0);
 ?>
 <div class="authcard">
   <div class="ribbon" style="border-radius:0"></div>
   <div class="authcard__body">
     <div class="authcard__mark">EY</div>
-    <div class="eyebrow">Student Registration &amp; Management</div>
+    <div class="eyebrow">Student Portal</div>
     <h1 style="margin:2px 0 3px"><?= e(setting('org_name', ORG_NAME)) ?></h1>
     <p class="muted tiny" style="font-style:italic"><?= e(setting('org_motto', ORG_MOTTO)) ?></p>
 
@@ -30,24 +29,30 @@ $hasUsers = (int) val('SELECT COUNT(*) FROM users', [], 0);
       <div class="alert alert--<?= e($f['type']) ?>" style="margin-top:14px"><div><?= $f['msg'] ?></div></div>
     <?php endforeach; ?>
 
-    <form method="post" style="margin-top:16px">
+    <form method="post" style="margin-top:20px">
       <?= csrf_field() ?>
-        <div class="field">
-          <label for="email">Email or registration number</label>
-          <input id="email" name="email" type="text" value="<?= e(post('email')) ?>" required autofocus autocomplete="username">
-        </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input id="password" name="password" type="password" autocomplete="current-password">
-        </div>
-        <p class="tiny" style="margin:4px 0 12px;text-align:right">
-          A student? <a href="<?= e(url('student.login')) ?>">Log in with your registration number &rarr;</a>
-        </p>
-      <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">Sign in</button>
+      <div class="field">
+        <label for="reg_no">Registration number</label>
+        <input id="reg_no" name="reg_no" type="text"
+               value="<?= e(post('reg_no')) ?>"
+               placeholder="e.g. EY-01-2026-0001"
+               required autofocus autocomplete="username"
+               style="letter-spacing:.03em">
+        <div class="hint">Enter the registration number on your ID card or slip.</div>
+      </div>
+      <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center;margin-top:4px">
+        <?= icon('login', 16) ?> Sign in
+      </button>
     </form>
-    <p class="tiny muted center" style="margin:14px 0 0">
-      Administrators sign in with email + password. Forgot your password? Ask an administrator.
+
+    <p class="tiny muted center" style="margin:16px 0 0">
+      No password needed — just your registration number.<br>
+      Forgot it? Ask an administrator.
     </p>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center">
+      <a class="tiny muted" href="<?= e(url('login')) ?>">← Back to staff login</a>
+    </div>
   </div>
   <div class="authcard__foot" style="display:flex;gap:10px;align-items:center">
     <span>Certificate holder?</span>

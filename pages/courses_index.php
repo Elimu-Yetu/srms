@@ -38,7 +38,7 @@ if (can('courses.manage')) {
           <tr>
             <td>
               <a href="<?= e(url('courses.view', ['id' => $c['id']])) ?>"><strong><?= e($c['name']) ?></strong></a>
-              <div class="tiny mono muted"><?= e($c['code']) ?> · <?= (int) $c['duration_weeks'] ?> weeks · <?= e(money($c['fee_amount'])) ?></div>
+              <div class="tiny mono muted"><?= e($c['code']) ?> · <?= (int) $c['duration_weeks'] ?> weeks</div>
             </td>
             <td class="tiny"><?= e($c['dept'] ?? '—') ?></td>
             <td class="tiny"><?= e($c['facilitator'] ?? 'To be assigned') ?></td>

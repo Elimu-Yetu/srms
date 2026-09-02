@@ -13,9 +13,10 @@ function routes(): array
 {
     return [
         // ── access ──────────────────────────────────────────────────────────
-        'login'   => ['file' => 'login.php',  'public' => true, 'layout' => 'auth',   'title' => 'Sign in'],
-        'logout'  => ['file' => 'logout.php', 'public' => true, 'layout' => 'auth',   'title' => 'Sign out'],
-        'verify'  => ['file' => 'verify.php', 'public' => true, 'layout' => 'public', 'title' => 'Verify a certificate'],
+        'login'          => ['file' => 'login.php',         'public' => true, 'layout' => 'auth',   'title' => 'Sign in'],
+        'student.login'  => ['file' => 'student_login.php',  'public' => true, 'layout' => 'auth',   'title' => 'Student sign in'],
+        'logout'         => ['file' => 'logout.php',         'public' => true, 'layout' => 'auth',   'title' => 'Sign out'],
+        'verify'         => ['file' => 'verify.php',         'public' => true, 'layout' => 'public', 'title' => 'Verify a certificate'],
 
         // ── everyone signed in ──────────────────────────────────────────────
         'dashboard'     => ['file' => 'dashboard.php', 'roles' => array_keys(ROLES), 'title' => 'Dashboard'],
@@ -66,9 +67,9 @@ function routes(): array
         'idcards.index' => ['file' => 'idcards_index.php', 'cap' => 'idcards.manage', 'title' => 'Student ID cards'],
         'idcards.print' => ['file' => 'idcards_print.php', 'cap' => 'idcards.manage', 'layout' => 'print', 'title' => 'Print ID cards'],
 
-        'certificates.index' => ['file' => 'certificates_index.php', 'roles' => ['superadmin', 'admin', 'student'], 'title' => 'Certificates'],
+        'certificates.index' => ['file' => 'certificates_index.php', 'roles' => ['superadmin', 'admin'], 'title' => 'Certificates'],
         'certificates.issue' => ['file' => 'certificates_issue.php', 'cap' => 'certificates.manage', 'title' => 'Issue a certificate'],
-        'certificates.print' => ['file' => 'certificates_print.php', 'roles' => ['superadmin', 'admin', 'student'], 'layout' => 'print', 'title' => 'Certificate'],
+        'certificates.print' => ['file' => 'certificates_print.php', 'roles' => ['superadmin', 'admin'], 'layout' => 'print', 'title' => 'Certificate'],
 
         // ── reports ─────────────────────────────────────────────────────────
         'reports.index' => ['file' => 'reports_index.php', 'cap' => 'reports.view', 'title' => 'Reports'],
@@ -108,7 +109,6 @@ function nav_sections(): array
             nav('timetable.mine',      'My timetable',  'calendar'),
             nav('attendance.mine',     'My attendance', 'check'),
             nav('marks.mine',          'My results',    'chart'),
-            nav('certificates.index',  'My certificate', 'award'),
             nav('notices.index',       'Notices',       'bell'),
         ])];
     }

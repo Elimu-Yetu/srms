@@ -31,7 +31,7 @@ function month_attendance(int $courseId, string $ym): array
     $from = $ym . '-01';
     $to   = date('Y-m-t', strtotime($from));
     $r = row("SELECT COUNT(DISTINCT session_date) sessions, COUNT(*) marks,
-                SUM(CASE WHEN status IN ('P','L') THEN 1 ELSE 0 END) present
+                SUM(CASE WHEN status = 'P' THEN 1 ELSE 0 END) present
               FROM attendance WHERE course_id = ? AND session_date BETWEEN ? AND ?", [$courseId, $from, $to]) ?: [];
     return [
         'sessions' => (int) ($r['sessions'] ?? 0),

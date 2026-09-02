@@ -9,7 +9,7 @@ $s  = row('SELECT s.*, d.name AS dept, u.name AS officer FROM students s
 if (!$s) { flash('error', 'That student file was not found.'); redirect('students.index'); }
 if (is_role('manager') && (int) $s['department_id'] !== my_department()) deny();
 
-$enrols = rows('SELECT e.*, c.code, c.name AS course, c.fee_amount, c.duration_weeks, c.start_date, c.end_date
+$enrols = rows('SELECT e.*, c.code, c.name AS course, c.duration_weeks, c.start_date, c.end_date
                 FROM enrolments e JOIN courses c ON c.id = e.course_id
                 WHERE e.student_id = ? ORDER BY c.name', [$id]);
 
@@ -46,6 +46,7 @@ $st          = settings();
         <div class="pair"><span class="pair__k">Gender</span><span class="pair__v"><?= e($s['gender'] ?: '—') ?></span></div>
         <div class="pair"><span class="pair__k">Date of birth</span><span class="pair__v"><?= e(d($s['dob'])) ?></span></div>
         <div class="pair"><span class="pair__k">Phone</span><span class="pair__v"><?= e($s['phone'] ?: '—') ?></span></div>
+        <div class="pair"><span class="pair__k">Email</span><span class="pair__v"><?= e($s['email'] ?: '—') ?></span></div>
         <div class="pair"><span class="pair__k">National ID</span><span class="pair__v"><?= e($s['national_id'] ?: '—') ?></span></div>
         <div class="pair pair--wide"><span class="pair__k">Address</span><span class="pair__v"><?= e($s['address'] ?: '—') ?></span></div>
         <div class="pair"><span class="pair__k">Department</span><span class="pair__v"><?= e($s['dept'] ?? '—') ?></span></div>
@@ -71,29 +72,27 @@ $st          = settings();
   <?php else: ?>
     <table class="doc">
       <thead>
-        <tr><th>Code</th><th>Course</th><th class="num">Weeks</th><th>Starts</th><th>Ends</th><th class="num">Fee (TZS)</th><th>Status</th></tr>
+        <tr><th>Code</th><th>Course</th><th class="num">Weeks</th><th>Starts</th><th>Ends</th><th>Status</th></tr>
       </thead>
       <tbody>
-      <?php $totalFee = 0; foreach ($enrols as $en): $totalFee += (float) $en['fee_amount']; ?>
+      <?php foreach ($enrols as $en): ?>
         <tr>
           <td style="font-family:var(--mono)"><?= e($en['code']) ?></td>
           <td><?= e($en['course']) ?></td>
           <td class="num"><?= (int) $en['duration_weeks'] ?></td>
           <td><?= e(d($en['start_date'])) ?></td>
           <td><?= e(d($en['end_date'])) ?></td>
-          <td class="num"><?= number_format((float) $en['fee_amount'], 0) ?></td>
           <td><?= e(ucfirst($en['status'])) ?></td>
         </tr>
       <?php endforeach; ?>
       </tbody>
-      <tfoot><tr><td colspan="5">Total course fees</td><td class="num"><?= number_format($totalFee, 0) ?></td><td></td></tr></tfoot>
     </table>
   <?php endif; ?>
 
   <div class="docsection">Declaration</div>
   <p style="font-size:11.5px;line-height:1.6;color:var(--ink-soft)">
-    I confirm that the details above are correct and that I have received the centre's rules on attendance,
-    conduct and fee payment. I understand that a minimum attendance of
+    I confirm that the details above are correct and that I have received the centre's rules on attendance and
+    conduct. I understand that a minimum attendance of
     <?= e($st['attendance_threshold'] ?? '80') ?>% is required to sit assessments and receive a certificate.
   </p>
 

@@ -22,9 +22,9 @@ if (is_role('facilitator')) {
 }
 
 if ($search !== '') {
-    $where .= ' AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.middle_name LIKE ? OR s.student_no LIKE ? OR s.phone LIKE ? OR s.national_id LIKE ?) ';
+    $where .= ' AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.middle_name LIKE ? OR s.student_no LIKE ? OR s.phone LIKE ? OR s.national_id LIKE ? OR s.email LIKE ?) ';
     $like  = '%' . $search . '%';
-    array_push($args, $like, $like, $like, $like, $like, $like);
+    array_push($args, $like, $like, $like, $like, $like, $like, $like);
 }
 if ($status !== '') { $where .= ' AND s.status = ? '; $args[] = $status; }
 if ($dept)         { $where .= ' AND s.department_id = ? '; $args[] = $dept; }

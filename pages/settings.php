@@ -111,7 +111,7 @@ $page_sub = 'These values feed the printed documents and the attendance rules, s
         to a flash disk kept outside the office. A backup you have never restored is only a hope, so test one
         each term.
       <?php else: ?>
-        Backups are taken by the super admin. Ask for a copy to be kept off-site each week.
+        Backups are managed at the server level. Keep a copy off-site each week.
       <?php endif; ?>
     </div>
   </div>

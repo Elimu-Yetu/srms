@@ -12,8 +12,17 @@ $roles      = assignable_roles();
 $depts      = rows("SELECT id, name FROM departments WHERE status = 'active' ORDER BY name");
 $errors     = [];
 
-$f = $rec ?: ['name' => '', 'email' => '', 'phone' => '', 'role' => 'facilitator',
-              'department_id' => '', 'status' => 'active'];
+$studentId  = getInt('student_id') ?: postInt('student_id');
+$studentRec = $studentId ? row('SELECT * FROM students WHERE id = ?', [$studentId]) : null;
+
+$f = $rec ?: [
+    'name'          => $studentRec ? trim($studentRec['first_name'] . ' ' . ($studentRec['middle_name'] ? $studentRec['middle_name'] . ' ' : '') . $studentRec['last_name']) : '',
+    'email'         => $studentRec ? ($studentRec['email'] ?: (strtolower(str_replace(['-', ' '], '', $studentRec['student_no'])) . '@student.elimuyetu.org')) : '',
+    'phone'         => $studentRec['phone'] ?? '',
+    'role'          => getStr('role') ?: 'facilitator',
+    'department_id' => $studentRec['department_id'] ?? '',
+    'status'        => 'active'
+];
 
 if (is_post()) {
     csrf_check();
@@ -36,7 +45,9 @@ if (is_post()) {
 
     // Don't let the last active admin-level account be demoted or disabled.
     if ($rec && in_array($rec['role'], ['superadmin', 'admin'], true)) {
-        $others = (int) val("SELECT COUNT(*) FROM users WHERE id <> ? AND status = 'active' AND role IN ('superadmin','admin')", [$id], 0);
+        // When the viewer is not superadmin, only count admins (superadmin is invisible to them).
+        $adminRoles = is_role('superadmin') ? "role IN ('superadmin','admin')" : "role = 'admin'";
+        $others = (int) val("SELECT COUNT(*) FROM users WHERE id <> ? AND status = 'active' AND $adminRoles", [$id], 0);
         if ($others === 0 && (!in_array($f['role'], ['superadmin', 'admin'], true) || $f['status'] !== 'active')) {
             $errors[] = 'This is the last active administrator. Create another one before changing this account.';
         }
@@ -47,6 +58,9 @@ if (is_post()) {
             'name' => $f['name'], 'email' => $f['email'], 'phone' => $f['phone'], 'role' => $f['role'],
             'department_id' => $f['department_id'], 'status' => $f['status'],
         ];
+        if ($studentId) {
+            $data['student_id'] = $studentId;
+        }
         if ($pw !== '') {
             $data['password_hash'] = password_hash($pw, PASSWORD_DEFAULT);
             $data['must_reset']    = postInt('must_reset') ? 1 : 0;
@@ -62,12 +76,14 @@ if (is_post()) {
             audit('create', 'users', $id, $f['email'] . ' · ' . $f['role']);
             flash('ok', 'Account created. Give <strong>' . e($f['email']) . '</strong> the password you just set.');
         }
+        if ($studentId) {
+            redirect('students.view', ['id' => $studentId]);
+        }
         redirect('users.index');
     }
 }
 
 $roleNotes = [
-    'superadmin'  => 'Full access. Invisible to every other role, including administrators.',
     'admin'       => 'Runs the system: departments, courses, registrations, staff, certificates, settings.',
     'manager'     => 'Owns one department — its courses, students, lesson plans and monthly reports.',
     'facilitator' => 'Teaches: takes attendance, enters marks, submits lesson plans and the monthly report.',
@@ -83,6 +99,9 @@ $roleNotes = [
   <div class="panel">
     <form method="post" class="panel__body">
       <?= csrf_field() ?>
+      <?php if ($studentId): ?>
+        <input type="hidden" name="student_id" value="<?= (int) $studentId ?>">
+      <?php endif; ?>
       <div class="formgrid">
         <div class="field span2">
           <label for="name">Full name <span class="req">*</span></label>

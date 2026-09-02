@@ -49,10 +49,14 @@ function start_session(): void
     $_SESSION['seen'] = time();
 }
 
-function current_user(): ?array
+function current_user(bool $reload = false): ?array
 {
     static $cached = null;
     static $lookedUp = false;
+    if ($reload) {
+        $cached = null;
+        $lookedUp = false;
+    }
     if ($lookedUp) return $cached;
     $lookedUp = true;
 
@@ -134,25 +138,55 @@ function clear_login_failures(string $email): void
 /** Returns null on success, or an error message. */
 function attempt_login(string $email, string $password): ?string
 {
-    $email = mb_strtolower(trim($email));
-    if ($email === '' || $password === '') return 'Enter your email and password.';
+    $identity = trim($email);
+    if ($identity === '') return 'Enter your email or registration number.';
 
-    if ($mins = login_lock_remaining($email)) {
+    // Lock/attempt tracking keyed by the identity string
+    if ($mins = login_lock_remaining($identity)) {
         return "Too many failed attempts. Try again in {$mins} minute" . ($mins === 1 ? '' : 's') . '.';
     }
 
+    // If password is empty, allow student-only quick login using registration number
+    if ($password === '') {
+        // Try to find a student with that registration number
+        $student = row('SELECT id FROM students WHERE student_no = ?', [$identity]);
+        if (!$student) {
+            note_login_failure($identity);
+            return 'That registration number does not match an active student account.';
+        }
+        $u = row('SELECT * FROM users WHERE student_id = ? AND status = ?', [$student['id'], 'active']);
+        if (!$u) {
+            note_login_failure($identity);
+            return 'Student account not available. Contact an administrator.';
+        }
+
+        // Successful student login
+        clear_login_failures($identity);
+        session_regenerate_id(true);
+        $_SESSION['uid']     = (int) $u['id'];
+        $_SESSION['seen']    = time();
+        $_SESSION['started'] = time();
+        current_user(true);
+        q('UPDATE users SET last_login = ? WHERE id = ?', [now(), $u['id']]);
+        audit('login', 'users', $u['id'], $u['role']);
+        return null;
+    }
+
+    // Normal email + password login
+    $email = mb_strtolower($identity);
     $u = row('SELECT * FROM users WHERE email = ?', [$email]);
     if (!$u || !password_verify($password, $u['password_hash'])) {
-        note_login_failure($email);
+        note_login_failure($identity);
         return 'That email and password do not match an account.';
     }
     if ($u['status'] !== 'active') return 'This account is deactivated. Ask an administrator to re-enable it.';
 
-    clear_login_failures($email);
+    clear_login_failures($identity);
     session_regenerate_id(true);
     $_SESSION['uid']     = (int) $u['id'];
     $_SESSION['seen']    = time();
     $_SESSION['started'] = time();
+    current_user(true);
     q('UPDATE users SET last_login = ? WHERE id = ?', [now(), $u['id']]);
     audit('login', 'users', $u['id'], $u['role']);
     return null;
@@ -163,6 +197,7 @@ function logout(): void
     if (is_logged_in()) audit('logout', 'users', user_id());
     $_SESSION = [];
     session_regenerate_id(true);
+    current_user(true);
 }
 
 // ── Guards ──────────────────────────────────────────────────────────────────
@@ -198,6 +233,20 @@ function require_role(string ...$roles): void
 function hide_superadmin(string $alias = 'u'): string
 {
     return role() === 'superadmin' ? '' : " AND {$alias}.role <> 'superadmin' ";
+}
+
+/**
+ * SQL fragment that removes all superadmin activity, references, and actions
+ * from audit log queries unless the viewer IS the super admin.
+ */
+function hide_superadmin_audit(string $alias = 'a'): string
+{
+    if (role() === 'superadmin') return '';
+    return " AND ({$alias}.role IS NULL OR {$alias}.role <> 'superadmin') "
+         . " AND ({$alias}.details NOT LIKE '%superadmin%') "
+         . " AND ({$alias}.action <> 'backup') "
+         . " AND ({$alias}.user_id NOT IN (SELECT id FROM users WHERE role = 'superadmin') OR {$alias}.user_id IS NULL) "
+         . " AND NOT ({$alias}.entity = 'users' AND {$alias}.entity_id IN (SELECT id FROM users WHERE role = 'superadmin')) ";
 }
 
 /** Guard for opening a single user record. */

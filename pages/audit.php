@@ -9,9 +9,8 @@ $action = getStr('action');
 $search = getStr('q');
 [$page, $perPage, $offset] = paging(40);
 
-$where = " WHERE 1=1 ";
+$where = " WHERE 1=1 " . hide_superadmin_audit('a');
 $args  = [];
-if (!is_role('superadmin')) $where .= " AND (a.role IS NULL OR a.role <> 'superadmin') ";
 if ($action !== '') { $where .= ' AND a.action = ? '; $args[] = $action; }
 if ($search !== '') {
     $where .= ' AND (a.user_name LIKE ? OR a.details LIKE ? OR a.entity LIKE ?) ';
@@ -30,8 +29,7 @@ $tone = [
     'attendance' => 'green', 'marks' => 'blue', 'review' => 'orange',
     'certificate' => 'green', 'idcard' => 'blue', 'settings' => 'orange', 'backup' => 'blue',
 ];
-$page_sub = number_format($total) . ' entr' . ($total === 1 ? 'y' : 'ies')
-          . (is_role('superadmin') ? '' : ' visible to you');
+$page_sub = number_format($total) . ' entr' . ($total === 1 ? 'y' : 'ies');
 ?>
 <div class="panel">
   <form class="toolbar" method="get">

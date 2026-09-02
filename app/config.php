@@ -19,7 +19,7 @@ define('ORG_NAME',      'ELIMU YETU ORGANIZATION');
 define('ORG_MOTTO',     'Ninaweza, nitafanya, najiamini');
 define('SESSION_IDLE_MINUTES', 30);   // auto logout after inactivity
 define('MAX_LOGIN_TRIES', 5);         // then a 10-minute cool-off
-define('STUDENT_NO_PREFIX', 'EY');    // -> EY-2026-0001
+define('STUDENT_NO_PREFIX', 'EY');    // -> EY-01-2026-0001 (EY-Intake-Year-Sequence)
 define('TIMEZONE', 'Africa/Dar_es_Salaam');
 
 // ── Paths ───────────────────────────────────────────────────────────────────

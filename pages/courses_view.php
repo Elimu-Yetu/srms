@@ -23,7 +23,7 @@ if (can('attendance.mark')) {
 $threshold = (int) setting('attendance_threshold', '80');
 $class = rows("SELECT e.id AS enrolment_id, e.status AS enrol_status, s.*,
                  (SELECT COUNT(*) FROM attendance a WHERE a.enrolment_id = e.id) AS sessions,
-                 (SELECT COUNT(*) FROM attendance a WHERE a.enrolment_id = e.id AND a.status IN ('P','L')) AS attended
+                 (SELECT COUNT(*) FROM attendance a WHERE a.enrolment_id = e.id AND a.status = 'P') AS attended
                FROM enrolments e JOIN students s ON s.id = e.student_id
                WHERE e.course_id = ? ORDER BY s.first_name, s.last_name", [$id]);
 
@@ -46,9 +46,9 @@ $sessionCount = (int) val('SELECT COUNT(DISTINCT session_date) FROM attendance W
     <div class="stat__note">Distinct dates in the register</div>
   </div>
   <div class="stat stat--orange">
-    <div class="stat__label">Fee</div>
-    <div class="stat__value" style="font-size:20px"><?= e(money($c['fee_amount'])) ?></div>
-    <div class="stat__note"><?= (int) $c['duration_weeks'] ?> weeks</div>
+    <div class="stat__label">Duration</div>
+    <div class="stat__value"><?= (int) $c['duration_weeks'] ?><small> wks</small></div>
+    <div class="stat__note"><?= (int) $c['duration_weeks'] ?> weeks training</div>
   </div>
   <div class="stat stat--ink">
     <div class="stat__label">Runs</div>

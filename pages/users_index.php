@@ -10,7 +10,7 @@ $search     = getStr('q');
 $where      = ' WHERE 1=1 ' . hide_superadmin('u');
 $args       = [];
 
-if ($roleFilter !== '' && isset(ROLES[$roleFilter])) { $where .= ' AND u.role = ? '; $args[] = $roleFilter; }
+if ($roleFilter !== '' && isset(ROLES[$roleFilter]) && ($roleFilter !== 'superadmin' || is_role('superadmin'))) { $where .= ' AND u.role = ? '; $args[] = $roleFilter; }
 if ($search !== '') {
     $where .= ' AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?) ';
     $like = '%' . $search . '%';
@@ -102,8 +102,5 @@ $page_actions = '<a class="btn btn--primary" href="' . e(url('users.form')) . '"
     Line managers see only their own department. Facilitators see only the classes assigned to them.
     Students get a portal login from their student file, not from here.
     The kitchen account reaches nothing but the kitchen pages.
-    <?php if (is_role('superadmin')): ?>
-      Administrators cannot see or create super admin accounts — only you can.
-    <?php endif; ?>
   </div>
 </div>
