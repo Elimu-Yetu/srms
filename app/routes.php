@@ -47,6 +47,7 @@ function routes(): array
 
         'timetable.index' => ['file' => 'timetable_index.php', 'cap' => 'timetable.manage', 'title' => 'Timetable'],
         'timetable.mine'  => ['file' => 'timetable_mine.php',  'roles' => ['student', 'facilitator', 'manager', 'admin', 'superadmin'], 'title' => 'Timetable'],
+        'timetable.global' => ['file' => 'timetable_global.php', 'roles' => ['superadmin', 'admin'], 'title' => 'All timetables'],
 
         'lessonplans.index' => ['file' => 'lessonplans_index.php', 'roles' => ['superadmin', 'admin', 'manager', 'facilitator'], 'title' => 'Lesson plans'],
         'lessonplans.form'  => ['file' => 'lessonplans_form.php',  'cap' => 'lessonplans.submit', 'title' => 'Lesson plan'],
@@ -74,8 +75,8 @@ function routes(): array
         'certificates.act' => ['file' => 'certificates_act.php', 'cap' => 'certificates.manage', 'layout' => 'raw', 'title' => 'Certificates action'],
 
         // ── reports ─────────────────────────────────────────────────────────
-        'reports.index' => ['file' => 'reports_index.php', 'cap' => 'reports.view', 'title' => 'Reports'],
-        'reports.show'  => ['file' => 'reports_show.php',  'cap' => 'reports.view', 'title' => 'Report'],
+        'reports.index' => ['file' => 'reports_index.php', 'roles' => ['admin', 'superadmin'], 'title' => 'Reports'],
+        'reports.show'  => ['file' => 'reports_show.php',  'roles' => ['admin', 'superadmin'], 'title' => 'Report'],
 
         // ── kitchen (kept at the bottom of the sidebar) ──────────────────────
         'kitchen.index'  => ['file' => 'kitchen_index.php',  'cap' => 'kitchen.view',   'title' => 'Kitchen dashboard'],
@@ -85,8 +86,8 @@ function routes(): array
         // ── system ──────────────────────────────────────────────────────────
         'users.index' => ['file' => 'users_index.php', 'cap' => 'users.manage',    'title' => 'Staff accounts'],
         'users.form'  => ['file' => 'users_form.php',  'cap' => 'users.manage',    'title' => 'Account'],
-        'settings'    => ['file' => 'settings.php',    'cap' => 'settings.manage', 'title' => 'Settings'],
-        'audit'       => ['file' => 'audit.php',       'cap' => 'audit.view',      'title' => 'Audit log'],
+        'settings'    => ['file' => 'settings.php',    'roles' => ['superadmin'], 'title' => 'Settings'],
+        'audit'       => ['file' => 'audit.php',       'roles' => ['superadmin'], 'title' => 'Audit log'],
         'backup'      => ['file' => 'backup.php',      'roles' => ['superadmin'],  'title' => 'Backup'],
     ];
 }
@@ -128,8 +129,9 @@ function nav_sections(): array
     $teach = array_filter([
         is_role('facilitator') ? nav('attendance.mark', 'Take attendance', 'check') : null,
         can('attendance.view') ? nav('attendance.register', 'Attendance register', 'list') : null,
+        is_role('admin', 'superadmin') ? nav('timetable.global', 'All timetables', 'calendar') : null,
         can('timetable.manage') ? nav('timetable.index', 'Timetable', 'calendar')
-                                : (is_role('facilitator') ? nav('timetable.mine', 'My timetable', 'calendar') : null),
+                    : (is_role('facilitator') ? nav('timetable.mine', 'My timetable', 'calendar') : null),
         can('marks.manage') ? nav('assessments.index', 'Assessments & marks', 'chart') : null,
         is_role('superadmin', 'admin', 'manager', 'facilitator') ? nav('lessonplans.index', 'Lesson plans', 'file') : null,
         is_role('superadmin', 'admin', 'manager', 'facilitator') ? nav('monthly.index', 'Monthly reports', 'calendar-check') : null,
@@ -141,15 +143,15 @@ function nav_sections(): array
     $docs = array_filter([
         can('idcards.manage')      ? nav('idcards.index', 'Student ID cards', 'card') : null,
         can('certificates.manage') ? nav('certificates.index', 'Certificates', 'award') : null,
-        can('reports.view')        ? nav('reports.index', 'Reports', 'printer') : null,
+        is_role('admin', 'superadmin') ? nav('reports.index', 'Reports', 'printer') : null,
     ]);
     if ($docs) $s[] = ['label' => 'Documents & reports', 'items' => $docs];
 
     // System
     $sys = array_filter([
         can('users.manage')    ? nav('users.index', 'Staff accounts', 'shield') : null,
-        can('settings.manage') ? nav('settings', 'Settings', 'cog') : null,
-        can('audit.view')      ? nav('audit', 'Audit log', 'eye') : null,
+        is_role('superadmin') ? nav('settings', 'Settings', 'cog') : null,
+        is_role('superadmin') ? nav('audit', 'Audit log', 'eye') : null,
         is_role('superadmin')  ? nav('backup', 'Backup & restore', 'database') : null,
     ]);
     if ($sys) $s[] = ['label' => 'System', 'items' => $sys];

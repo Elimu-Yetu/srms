@@ -2,7 +2,19 @@
 /** Build the weekly timetable, one slot at a time, with clash detection. */
 require_once BASE_PATH . '/views/icons.php';
 
-$mine    = my_course_ids();
+$deptId  = 0;
+if (is_role('admin', 'superadmin')) {
+  $departments = rows('SELECT id, name FROM departments ORDER BY name');
+  $deptId = getInt('department_id');
+  if ($deptId) {
+    $mine = array_column(rows('SELECT id FROM courses WHERE department_id = ?', [$deptId]), 'id');
+  } else {
+    $mine = [];
+  }
+} else {
+  $mine = my_course_ids();
+}
+
 $courses = rows('SELECT c.id, c.code, c.name FROM courses c WHERE c.id IN (' . in_list($mine) . ") AND c.status <> 'closed' ORDER BY c.name");
 $facs    = rows("SELECT id, name FROM users WHERE role = 'facilitator' AND status = 'active' ORDER BY name");
 $filter  = getInt('course_id');
@@ -23,7 +35,10 @@ if (is_post()) {
       }
       flash('ok', 'Slot removed.');
     }
-    redirect('timetable.index', $filter ? ['course_id' => $filter] : []);
+    // preserve department filter for admins
+    $redir = [];
+    if (is_role('admin', 'superadmin') && postInt('department_id')) $redir['department_id'] = postInt('department_id');
+    redirect('timetable.index', $redir + ($filter ? ['course_id' => $filter] : []));
     }
 
     $courseId = postInt('course_id');
@@ -41,15 +56,18 @@ if (is_post()) {
     elseif ($end <= $start)    $errors[] = 'The end time must be after the start time.';
 
     if (!$errors) {
-        // Clash detection: same room or same facilitator at an overlapping time.
-        $clash = row('SELECT t.*, c.code FROM timetable t JOIN courses c ON c.id = t.course_id
-                      WHERE t.day_of_week = ? AND t.start_time < ? AND t.end_time > ?
-                        AND ((? <> \'\' AND t.room = ?) OR (? IS NOT NULL AND t.facilitator_id = ?))',
-                     [$dow, $end, $start, $room, $room, $facId, $facId]);
-        if ($clash) {
-            $errors[] = 'That clashes with <strong>' . e($clash['code'] . ' — ' . $clash['subject']) . '</strong> ('
-                      . e($clash['start_time']) . '–' . e($clash['end_time']) . ($clash['room'] ? ', ' . e($clash['room']) : '') . ').';
-        }
+      // Determine department of the course to scope clash detection to the same department
+      $courseDept = (int) val('SELECT department_id FROM courses WHERE id = ?', [$courseId], 0);
+      // Clash detection: same room or same facilitator at an overlapping time within the same department.
+      $clash = row('SELECT t.*, c.code, c.department_id FROM timetable t JOIN courses c ON c.id = t.course_id
+              WHERE t.day_of_week = ? AND t.start_time < ? AND t.end_time > ?
+              AND c.department_id = ?
+              AND ((? <> \'\' AND t.room = ?) OR (? IS NOT NULL AND t.facilitator_id = ?))',
+             [$dow, $end, $start, $courseDept, $room, $room, $facId, $facId]);
+      if ($clash) {
+        $errors[] = 'That clashes with <strong>' . e($clash['code'] . ' — ' . $clash['subject']) . '</strong> ('
+              . e($clash['start_time']) . '–' . e($clash['end_time']) . ($clash['room'] ? ', ' . e($clash['room']) : '') . ').';
+      }
     }
 
     if (!$errors) {
@@ -59,7 +77,9 @@ if (is_post()) {
         ]);
         audit('create', 'timetable', $id, $subject);
         flash('ok', 'Slot added to the timetable.');
-        redirect('timetable.index', $filter ? ['course_id' => $filter] : []);
+        $redir = [];
+        if (is_role('admin', 'superadmin') && postInt('department_id')) $redir['department_id'] = postInt('department_id');
+        redirect('timetable.index', $redir + ($filter ? ['course_id' => $filter] : []));
     }
 }
 
@@ -130,17 +150,28 @@ $page_sub = 'Slots repeat every week. Clashes on room or facilitator are blocked
     <?php if (can('courses.manage')): ?><a class="btn btn--primary" href="<?= e(url('courses.form')) ?>">New course</a><?php endif; ?>
   </div></div>
 <?php else: ?>
-<div class="panel">
+  <div class="panel">
   <div class="panel__head"><h2>Add a slot</h2></div>
   <form method="post" class="panel__body">
     <?= csrf_field() ?>
+    <?php if (is_role('admin')): ?>
+      <div class="field">
+        <label for="department_id">Department</label>
+        <select id="department_id" name="department_id" data-autosubmit>
+          <option value="">Select a department…</option>
+          <?php foreach ($departments as $d): ?>
+            <option value="<?= (int) $d['id'] ?>" <?= $deptId === (int) $d['id'] ? 'selected' : '' ?>><?= e($d['name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+    <?php endif; ?>
     <div class="formgrid formgrid--3">
       <div class="field">
         <label for="course_id">Course</label>
         <select id="course_id" name="course_id" required>
           <?php foreach ($courses as $c): ?>
             <option value="<?= (int) $c['id'] ?>" <?= $filter === (int) $c['id'] ? 'selected' : '' ?>><?= e($c['code'] . ' — ' . $c['name']) ?></option>
-          <?php endforeach; ?>
+              <?php endforeach; ?>
         </select>
       </div>
       <div class="field">
