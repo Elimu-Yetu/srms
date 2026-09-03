@@ -2,6 +2,27 @@
 /** Departments — the top level of the centre's structure. */
 require_once BASE_PATH . '/views/icons.php';
 
+if (is_post() && can('departments.manage')) {
+  csrf_check();
+  if (post('do') === 'delete') {
+    $did = postInt('id');
+    $d = row('SELECT * FROM departments WHERE id = ?', [$did]);
+    if ($d) {
+      $courses = (int) val('SELECT COUNT(*) FROM courses WHERE department_id = ?', [$did], 0);
+      $students = (int) val('SELECT COUNT(*) FROM students WHERE department_id = ?', [$did], 0);
+      $users = (int) val('SELECT COUNT(*) FROM users WHERE department_id = ?', [$did], 0);
+      if ($courses || $students || $users) {
+        flash('error', 'Cannot delete department while it has ' . ($courses ? $courses . ' course(s) ' : '') . ($students ? $students . ' student(s) ' : '') . ($users ? $users . ' account(s)' : ''));
+      } else {
+        q('DELETE FROM departments WHERE id = ?', [$did]);
+        audit('delete', 'departments', $did, $d['name']);
+        flash('ok', 'Department removed.');
+      }
+    }
+    redirect('departments.index');
+  }
+}
+
 [$scope, $args] = dept_scope('d.id');
 $list = rows("SELECT d.*, u.name AS manager,
                 (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.id AND c.status = 'active') AS courses,
@@ -49,6 +70,12 @@ $page_sub = 'Each department has one line manager, its own courses and its own s
           <a class="btn btn--sm" href="<?= e(url('departments.view', ['id' => $d['id']])) ?>">Open</a>
           <?php if (can('departments.manage')): ?>
             <a class="btn btn--sm btn--ghost" href="<?= e(url('departments.form', ['id' => $d['id']])) ?>"><?= icon('edit', 15) ?> Edit</a>
+            <form method="post" style="display:inline-block;margin-left:6px">
+              <?= csrf_field() ?>
+              <input type="hidden" name="do" value="delete">
+              <input type="hidden" name="id" value="<?= (int) $d['id'] ?>">
+              <button class="btn btn--sm btn--ghost" data-confirm="Delete this department?"><?= icon('x', 14) ?></button>
+            </form>
           <?php endif; ?>
         </div>
       </div>

@@ -16,7 +16,7 @@ $errors = [];
 $f = $rec ?: [
     'department_id' => getInt('department_id') ?: (is_admin() ? '' : my_department()),
     'code' => '', 'name' => '', 'description' => '', 'duration_weeks' => 12, 'fee_amount' => 0,
-    'capacity' => 25, 'facilitator_id' => '', 'start_date' => '', 'end_date' => '', 'status' => 'active',
+    'capacity' => 25, 'facilitator_id' => '', 'status' => 'active',
 ];
 
 if (is_post()) {
@@ -27,16 +27,13 @@ if (is_post()) {
     $f['duration_weeks'] = max(1, postInt('duration_weeks', 12));
     $f['capacity']       = max(1, postInt('capacity', 25));
     $f['facilitator_id'] = postInt('facilitator_id') ?: null;
-    $f['start_date']     = postNull('start_date');
-    $f['end_date']       = postNull('end_date');
+    // start_date and end_date removed — handled elsewhere if needed
 
     if ($f['code'] === '') $errors[] = 'A course code is required, e.g. WEB-101.';
     if ($f['name'] === '') $errors[] = 'The course name is required.';
     if (!$f['department_id']) $errors[] = 'Choose a department.';
     if (val('SELECT 1 FROM courses WHERE code = ? AND id <> ?', [$f['code'], $id])) $errors[] = 'Another course already uses the code ' . e($f['code']) . '.';
-    if ($f['start_date'] && $f['end_date'] && strtotime($f['end_date']) < strtotime($f['start_date'])) {
-        $errors[] = 'The end date is before the start date.';
-    }
+    // date range validation removed (start/end no longer part of the form)
     if ($rec) {
         $enrolled = (int) val('SELECT COUNT(*) FROM enrolments WHERE course_id = ? AND status = ?', [$id, 'active'], 0);
         if ($f['capacity'] < $enrolled) $errors[] = "Capacity cannot be below the $enrolled students already enrolled.";
@@ -47,8 +44,7 @@ if (is_post()) {
             'department_id' => $f['department_id'], 'code' => $f['code'], 'name' => $f['name'],
             'description' => $f['description'], 'duration_weeks' => $f['duration_weeks'],
             'fee_amount' => 0, 'capacity' => $f['capacity'],
-            'facilitator_id' => $f['facilitator_id'], 'start_date' => $f['start_date'],
-            'end_date' => $f['end_date'], 'status' => $f['status'],
+            'facilitator_id' => $f['facilitator_id'], 'status' => $f['status'],
         ];
         if ($rec) {
             update('courses', $data, 'id = :wid', ['wid' => $id]);
@@ -110,14 +106,6 @@ if (is_post()) {
             <option value="<?= (int) $u['id'] ?>" <?= (int) $f['facilitator_id'] === (int) $u['id'] ? 'selected' : '' ?>><?= e($u['name']) ?></option>
           <?php endforeach; ?>
         </select>
-      </div>
-      <div class="field">
-        <label for="start_date">Starts</label>
-        <input id="start_date" name="start_date" type="date" value="<?= e($f['start_date']) ?>">
-      </div>
-      <div class="field">
-        <label for="end_date">Ends</label>
-        <input id="end_date" name="end_date" type="date" value="<?= e($f['end_date']) ?>">
       </div>
       <div class="field">
         <label for="status">Status</label>

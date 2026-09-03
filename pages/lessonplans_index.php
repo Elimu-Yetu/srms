@@ -20,8 +20,8 @@ $pending = (int) val('SELECT COUNT(*) FROM lesson_plans WHERE review_status = ? 
 $page_sub = can('lessonplans.review')
     ? $pending . ' waiting for review'
     : 'Your submitted plans and the feedback on them.';
-if (can('lessonplans.submit')) {
-    $page_actions = '<a class="btn btn--primary" href="' . e(url('lessonplans.form')) . '">' . icon('plus', 16) . ' New lesson plan</a>';
+if (can('lessonplans.submit') || can('lessonplans.review')) {
+  $page_actions = '<a class="btn btn--primary" href="' . e(url('lessonplans.form')) . '">' . icon('plus', 16) . ' New lesson plan</a>';
 }
 ?>
 <div class="panel">
@@ -36,12 +36,12 @@ if (can('lessonplans.submit')) {
     <div class="empty">
       <div class="empty__mark"><?= icon('file', 22) ?></div>
       <h3>No lesson plans here</h3>
-      <p><?= can('lessonplans.submit')
-            ? 'Write a plan before the lesson: date, topic, objectives, activities and resources. Your line manager sees it at once.'
-            : 'Facilitators submit plans from their own dashboard. Nothing has arrived yet.' ?></p>
-      <?php if (can('lessonplans.submit')): ?>
-        <a class="btn btn--primary" href="<?= e(url('lessonplans.form')) ?>">Write a lesson plan</a>
-      <?php endif; ?>
+    <p><?= can('lessonplans.submit') || can('lessonplans.review')
+      ? 'Write a plan before the lesson: date, topic, objectives, activities and resources. Your line manager sees it at once.'
+      : 'Facilitators submit plans from their own dashboard. Nothing has arrived yet.' ?></p>
+    <?php if (can('lessonplans.submit') || can('lessonplans.review')): ?>
+      <a class="btn btn--primary" href="<?= e(url('lessonplans.form')) ?>">Write a lesson plan</a>
+    <?php endif; ?>
     </div>
   <?php else: ?>
     <div class="tablewrap">

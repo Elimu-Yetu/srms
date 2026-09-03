@@ -5,12 +5,32 @@
  */
 require_once BASE_PATH . '/views/icons.php';
 
+if (is_post() && can('users.manage')) {
+  csrf_check();
+  if (post('do') === 'delete') {
+    $uid = postInt('id');
+    $u = row('SELECT * FROM users WHERE id = ?', [$uid]);
+    if ($u) {
+      if ((int) $u['id'] === user_id()) {
+        flash('error', 'You cannot delete your own account.');
+      } elseif ($u['role'] === 'superadmin' && !is_role('superadmin')) {
+        flash('error', 'Only a superadmin can delete that account.');
+      } else {
+        q('DELETE FROM users WHERE id = ?', [$uid]);
+        audit('delete', 'users', $uid, $u['email']);
+        flash('ok', 'Account removed.');
+      }
+    }
+    redirect('users.index');
+  }
+}
+
 $roleFilter = getStr('role');
 $search     = getStr('q');
-$where      = ' WHERE 1=1 ' . hide_superadmin('u');
+$where      = " WHERE 1=1 " . hide_superadmin('u') . " AND u.role <> 'student' ";
 $args       = [];
 
-if ($roleFilter !== '' && isset(ROLES[$roleFilter]) && ($roleFilter !== 'superadmin' || is_role('superadmin'))) { $where .= ' AND u.role = ? '; $args[] = $roleFilter; }
+if ($roleFilter !== '' && isset(ROLES[$roleFilter]) && ($roleFilter !== 'superadmin' || is_role('superadmin'))) { if ($roleFilter !== 'student') { $where .= ' AND u.role = ? '; $args[] = $roleFilter; } }
 if ($search !== '') {
     $where .= ' AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?) ';
     $like = '%' . $search . '%';
@@ -26,8 +46,8 @@ $list = rows("SELECT u.*, d.name AS dept, s.student_no
                             WHEN 'facilitator' THEN 3 WHEN 'kitchen' THEN 4 ELSE 5 END, u.name", $args);
 
 $counts = [];
-foreach (rows('SELECT u.role, COUNT(*) n FROM users u WHERE 1=1 ' . hide_superadmin('u') . ' GROUP BY u.role') as $c) {
-    $counts[$c['role']] = (int) $c['n'];
+foreach (rows("SELECT u.role, COUNT(*) n FROM users u WHERE 1=1 " . hide_superadmin('u') . " AND u.role <> 'student' GROUP BY u.role") as $c) {
+  $counts[$c['role']] = (int) $c['n'];
 }
 
 $page_sub     = count($list) . ' account' . (count($list) === 1 ? '' : 's');
@@ -46,6 +66,7 @@ $page_actions = '<a class="btn btn--primary" href="' . e(url('users.form')) . '"
         <option value="">All roles</option>
         <?php foreach (ROLES as $k => $lbl): ?>
           <?php if ($k === 'superadmin' && !is_role('superadmin')) continue; ?>
+          <?php if ($k === 'student') continue; ?>
           <option value="<?= $k ?>" <?= $roleFilter === $k ? 'selected' : '' ?>>
             <?= e($lbl) ?><?= isset($counts[$k]) ? ' (' . $counts[$k] . ')' : '' ?>
           </option>
@@ -87,6 +108,14 @@ $page_actions = '<a class="btn btn--primary" href="' . e(url('users.form')) . '"
             <td><?= badge(ucfirst($u['status']), status_tone($u['status'])) ?></td>
             <td class="right">
               <a class="btn btn--sm btn--ghost" href="<?= e(url('users.form', ['id' => $u['id']])) ?>"><?= icon('edit', 15) ?></a>
+              <?php if (can('users.manage') && (int) $u['id'] !== user_id()): ?>
+                <form method="post" style="display:inline-block;margin-left:6px">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="do" value="delete">
+                  <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                  <button class="btn btn--sm btn--ghost" data-confirm="Delete this account?"><?= icon('x', 14) ?></button>
+                </form>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -97,10 +126,9 @@ $page_actions = '<a class="btn btn--primary" href="' . e(url('users.form')) . '"
 </div>
 
 <div class="panel" style="margin-top:16px">
-  <div class="panel__body tiny" style="color:var(--ink-soft);line-height:1.7">
+    <div class="panel__body tiny" style="color:var(--ink-soft);line-height:1.7">
     <strong>How accounts work.</strong>
     Line managers see only their own department. Facilitators see only the classes assigned to them.
-    Students get a portal login from their student file, not from here.
     The kitchen account reaches nothing but the kitchen pages.
   </div>
 </div>

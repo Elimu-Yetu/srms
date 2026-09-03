@@ -8,6 +8,31 @@ $s  = row('SELECT s.*, d.name AS dept, u.name AS registered_by_name
            LEFT JOIN users u ON u.id = s.registered_by WHERE s.id = ?', [$id]);
 if (!$s) { flash('error', 'That student file was not found.'); redirect('students.index'); }
 
+// Handle deletion (allow either students.manage or admin role)
+if (is_post() && post('do') === 'delete') {
+  csrf_check();
+  if (!can('students.manage') && !is_role('admin')) {
+    flash('error', 'You do not have permission to delete student files.');
+    redirect('students.view', ['id' => $id]);
+  }
+  $enrols = (int) val('SELECT COUNT(*) FROM enrolments WHERE student_id = ?', [$id], 0);
+  $certs  = (int) val('SELECT COUNT(*) FROM certificates WHERE student_id = ?', [$id], 0);
+  if ($enrols > 0) {
+    flash('error', 'Cannot delete a student with active enrolments. Unenrol the student first.');
+    redirect('students.view', ['id' => $id]);
+  }
+  if ($certs > 0) {
+    flash('error', 'That student has certificates issued. Remove certificates before deleting the student.');
+    redirect('students.view', ['id' => $id]);
+  }
+  // safe to delete
+  q('DELETE FROM id_cards WHERE student_id = ?', [$id]);
+  q('DELETE FROM students WHERE id = ?', [$id]);
+  audit('delete', 'students', $id, $s['student_no'] . ' ' . trim($s['first_name'] . ' ' . $s['last_name']));
+  flash('ok', 'Deleted student file for ' . e($s['first_name'] . ' ' . $s['last_name']) . '.');
+  redirect('students.index');
+}
+
 if (is_role('manager') && (int) $s['department_id'] !== my_department()) deny('That student is in another department.');
 if (is_role('facilitator')) {
     $ok = val('SELECT 1 FROM enrolments WHERE student_id = ? AND course_id IN (' . in_list(my_course_ids()) . ')', [$id]);
@@ -24,6 +49,9 @@ if (can('students.manage')) {
     $page_actions .= '<a class="btn" href="' . e(url('students.form', ['id' => $id])) . '">' . icon('edit', 16) . ' Edit</a>';
 }
 $page_actions .= '<a class="btn" target="_blank" href="' . e(url('students.slip', ['id' => $id])) . '">' . icon('printer', 16) . ' Slip</a>';
+if (can('students.manage') || is_role('admin')) {
+  $page_actions .= '<form method="post" style="display:inline">' . csrf_field() . '<input type="hidden" name="do" value="delete"><button class="btn btn--danger" data-confirm="Delete this student file?">' . icon('x', 14) . ' Delete</button></form>';
+}
 
 $enrols = rows('SELECT e.*, c.code, c.name AS course, c.end_date, u.name AS facilitator
                 FROM enrolments e JOIN courses c ON c.id = e.course_id

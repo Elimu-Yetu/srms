@@ -116,7 +116,9 @@ $facts = $f['course_id'] ? month_attendance((int) $f['course_id'], (string) $f['
 
       <div class="field">
         <label for="topics_covered">Topics covered <span class="req">*</span></label>
-        <textarea id="topics_covered" name="topics_covered" rows="4" required placeholder="One topic per line."><?= e($f['topics_covered']) ?></textarea>
+        <input type="hidden" id="topics_covered" name="topics_covered" value="<?= e($f['topics_covered']) ?>">
+        <link href="assets/css/quill.snow.css" rel="stylesheet">
+        <div id="quill-topics" style="height:260px;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:auto"></div>
       </div>
       <div class="field">
         <label for="attendance_summary">Attendance summary</label>
@@ -138,6 +140,9 @@ $facts = $f['course_id'] ? month_attendance((int) $f['course_id'], (string) $f['
 
       <div class="btnrow">
         <button class="btn btn--primary"><?= icon('check', 16) ?> <?= $rec ? 'Resubmit report' : 'Submit report' ?></button>
+        <?php if (is_role('facilitator')): ?>
+          <button type="button" id="load-template" class="btn btn--ghost"><?= icon('file', 14) ?> Load template</button>
+        <?php endif; ?>
         <a class="btn btn--ghost" href="<?= e(url('monthly.index')) ?>">Cancel</a>
       </div>
     </form>
@@ -159,4 +164,42 @@ $facts = $f['course_id'] ? month_attendance((int) $f['course_id'], (string) $f['
     </div>
   </div>
 </div>
+<?php endif; ?>
+<?php if (is_role('facilitator')): ?>
+<script>
+// Populate the monthly report form with an example template.
+// Load Quill editor
+var quill;
+(function(){
+  var s1 = document.createElement('script');
+  s1.src = 'assets/js/quill.min.js';
+  s1.onload = function(){
+    quill = new Quill('#quill-topics', { theme: 'snow', modules: { toolbar: [ [{ 'header': [1,2,3,false] } ], ['bold','italic','underline','strike'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['blockquote','code-block'], ['link','image'] ] } });
+    // Populate editor with existing content (safe HTML stored as value)
+    var existing = document.getElementById('topics_covered').value || '';
+    try { quill.root.innerHTML = existing; } catch(e) { quill.setText(existing); }
+    // Ensure form submits HTML
+    document.querySelector('form').addEventListener('submit', function(){
+      document.getElementById('topics_covered').value = quill.root.innerHTML;
+    });
+  };
+  document.head.appendChild(s1);
+})();
+
+document.getElementById('load-template')?.addEventListener('click', function(){
+  if (!confirm('Load the example monthly report template? Existing content will be replaced.')) return;
+  var tpl = `
+<p>Week 1: Introduction and safety briefing</p>
+<p>Week 2: Practical skills - equipment handling</p>
+<p>Week 3: Theory - food hygiene</p>
+<p>Week 4: Assessment and revision</p>`;
+  if (quill) quill.root.innerHTML = tpl; else document.getElementById('topics_covered').value = tpl;
+  document.getElementById('attendance_summary').value = `Average attendance: 88%\nNotable absentees: Student A (illness), Student B (late)`;
+  document.getElementById('challenges').value = `Shortage of consumables (spices and packaging). One practical session interrupted by power outage.`;
+  document.getElementById('support_needed').value = `Request replacement gas cylinder and 10 sets of protective aprons. Consider backup power for practical sessions.`;
+  document.getElementById('comments').value = `Learners showed good engagement; two students require remedial support in knife skills.`;
+  // scroll to top of form
+  window.scrollTo({top: document.querySelector('form').offsetTop - 20, behavior: 'smooth'});
+});
+</script>
 <?php endif; ?>

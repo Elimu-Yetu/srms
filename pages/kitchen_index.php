@@ -10,6 +10,25 @@ $st       = settings();
 $teaLabel = $st['kitchen_tea_label'] ?? 'Morning tea (cups)';
 $mealLabel = $st['kitchen_meal_label'] ?? 'Afternoon meal (plates)';
 
+// Handle deletion of a kitchen record
+if (post('do') === 'delete') {
+  csrf_check();
+  $kid = postInt('id');
+  $r = row('SELECT * FROM kitchen_records WHERE id = ?', [$kid]);
+  if (!$r) {
+    flash('error', 'That kitchen record was not found.');
+    redirect('kitchen.index');
+  }
+  if (!is_role('kitchen') && !is_role('admin')) {
+    flash('error', 'Only kitchen staff or an administrator can delete kitchen records.');
+    redirect('kitchen.index');
+  }
+  q('DELETE FROM kitchen_records WHERE id = ?', [$kid]);
+  audit('delete', 'kitchen_records', $kid, $r['service_date']);
+  flash('ok', 'Deleted the kitchen record for ' . e(d($r['service_date'])) . '.');
+  redirect('kitchen.index');
+}
+
 $today  = date('Y-m-d');
 $rec    = row('SELECT * FROM kitchen_records WHERE service_date = ?', [$today]);
 $series = array_reverse(rows('SELECT * FROM kitchen_records ORDER BY service_date DESC LIMIT 14'));
@@ -174,6 +193,13 @@ $page_actions = '<a class="btn btn--orange" href="' . e(url('kitchen.record')) .
                 <td class="right">
                   <?php if (can('kitchen.record')): ?>
                     <a class="btn btn--sm btn--ghost" href="<?= e(url('kitchen.record', ['date' => $s['service_date']])) ?>"><?= icon('edit', 15) ?></a>
+                  <?php endif; ?>
+                  <?php if (is_role('kitchen') || is_role('admin')): ?>
+                    <form method="post" style="display:inline"><?= csrf_field() ?>
+                      <input type="hidden" name="do" value="delete">
+                      <input type="hidden" name="id" value="<?= (int) $s['id'] ?>">
+                      <button class="btn btn--sm btn--ghost" data-confirm="Delete record for <?= e(d($s['service_date'])) ?>?"><?= icon('x', 14) ?></button>
+                    </form>
                   <?php endif; ?>
                 </td>
               </tr>

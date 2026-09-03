@@ -229,23 +229,55 @@ function verify_code(): string
  */
 function save_photo(string $field, ?string &$error = null): ?string
 {
-    if (empty($_FILES[$field]['name']) || ($_FILES[$field]['error'] ?? 1) === UPLOAD_ERR_NO_FILE) return null;
-    $f = $_FILES[$field];
+    // Prefer normal file upload if present
+    if (!empty($_FILES[$field]['name']) && ($_FILES[$field]['error'] ?? 1) !== UPLOAD_ERR_NO_FILE) {
+        $f = $_FILES[$field];
 
-    if ($f['error'] !== UPLOAD_ERR_OK) { $error = 'The photo did not upload. Try a smaller file.'; return null; }
-    if ($f['size'] > 3 * 1024 * 1024) { $error = 'Photo is larger than 3 MB. Use a smaller image.'; return null; }
+        if ($f['error'] !== UPLOAD_ERR_OK) { $error = 'The photo did not upload. Try a smaller file.'; return null; }
+        if ($f['size'] > 3 * 1024 * 1024) { $error = 'Photo is larger than 3 MB. Use a smaller image.'; return null; }
 
-    $info = @getimagesize($f['tmp_name']);
-    $map  = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
-    if (!$info || !isset($map[$info[2]])) { $error = 'Only JPG, PNG or WEBP photos are accepted.'; return null; }
+        $info = @getimagesize($f['tmp_name']);
+        $map  = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
+        if (!$info || !isset($map[$info[2]])) { $error = 'Only JPG, PNG or WEBP photos are accepted.'; return null; }
 
-    if (!is_dir(UPLOAD_PATH)) @mkdir(UPLOAD_PATH, 0775, true);
-    $name = 'stu_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $map[$info[2]];
-    if (!move_uploaded_file($f['tmp_name'], UPLOAD_PATH . '/' . $name)) {
-        $error = 'Could not save the photo. Check that storage/uploads/photos is writable.';
-        return null;
+        if (!is_dir(UPLOAD_PATH)) @mkdir(UPLOAD_PATH, 0775, true);
+        $name = 'stu_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $map[$info[2]];
+        if (!move_uploaded_file($f['tmp_name'], UPLOAD_PATH . '/' . $name)) {
+            $error = 'Could not save the photo. Check that storage/uploads/photos is writable.';
+            return null;
+        }
+        return $name;
     }
-    return $name;
+
+    // Fallback: accept a base64 data URL posted as e.g. photo_data
+    $dataKey = $field . '_data';
+    if (!empty($_POST[$dataKey])) {
+        $data = $_POST[$dataKey];
+        // Strip data URL prefix if present
+        if (strpos($data, 'data:') === 0) {
+            $parts = explode(',', $data, 2);
+            if (count($parts) !== 2) { $error = 'Invalid photo data.'; return null; }
+            $meta = $parts[0];
+            $data = $parts[1];
+        }
+        $decoded = base64_decode($data);
+        if ($decoded === false) { $error = 'Could not decode photo data.'; return null; }
+        if (strlen($decoded) > 3 * 1024 * 1024) { $error = 'Photo is larger than 3 MB. Use a smaller image.'; return null; }
+
+        $info = @getimagesizefromstring($decoded);
+        $map  = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
+        if (!$info || !isset($map[$info[2]])) { $error = 'Only JPG, PNG or WEBP photos are accepted.'; return null; }
+
+        if (!is_dir(UPLOAD_PATH)) @mkdir(UPLOAD_PATH, 0775, true);
+        $name = 'stu_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $map[$info[2]];
+        if (file_put_contents(UPLOAD_PATH . '/' . $name, $decoded) === false) {
+            $error = 'Could not save the photo. Check that storage/uploads/photos is writable.';
+            return null;
+        }
+        return $name;
+    }
+
+    return null;
 }
 
 /** Photos live outside the served folders, so they stream through a route. */
@@ -298,4 +330,55 @@ function pager(int $total, int $perPage, int $page, string $route, array $params
         $out .= '<a class="pager__link' . $cls . '" href="' . e(url($route, $params + ['page' => $i])) . '">' . $i . '</a>';
     }
     return $out . '</nav>';
+}
+
+/**
+ * Sanitize a limited subset of HTML produced by the rich editor.
+ * Keeps a small safe whitelist of tags and strips unsafe attributes.
+ */
+function sanitize_html(string $html): string
+{
+    $allowed = ['p','br','strong','b','em','i','ul','ol','li','a','blockquote','pre','code','h1','h2','h3'];
+    libxml_use_internal_errors(true);
+    $doc = new DOMDocument();
+    // Wrap in a container to preserve fragments
+    $doc->loadHTML('<?xml encoding="utf-8" ?><div>' . $html . '</div>');
+    $container = $doc->getElementsByTagName('div')->item(0);
+    if (!$container) return '';
+
+    $nodes = [];
+    foreach ($container->getElementsByTagName('*') as $n) $nodes[] = $n;
+    foreach ($nodes as $n) {
+        $name = $n->nodeName;
+        if (!in_array($name, $allowed, true)) {
+            // unwrap the node
+            while ($n->firstChild) $n->parentNode->insertBefore($n->firstChild, $n);
+            $n->parentNode->removeChild($n);
+            continue;
+        }
+        // sanitize attributes
+        if ($name === 'a') {
+            $href = $n->getAttribute('href');
+            if (!$href || preg_match('/^\s*javascript:/i', $href) || preg_match('/^\s*data:/i', $href)) {
+                $n->removeAttribute('href');
+            } else {
+                $n->setAttribute('href', htmlspecialchars($href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+                $n->setAttribute('rel', 'noopener noreferrer');
+                $n->setAttribute('target', '_blank');
+            }
+            // remove any other attributes
+            $attrs = [];
+            foreach ($n->attributes as $a) $attrs[] = $a->name;
+            foreach ($attrs as $a) if (!in_array($a, ['href','rel','target'], true)) $n->removeAttribute($a);
+        } else {
+            // remove all attributes on other tags
+            $attrs = [];
+            foreach ($n->attributes as $a) $attrs[] = $a->name;
+            foreach ($attrs as $a) $n->removeAttribute($a);
+        }
+    }
+
+    $out = '';
+    foreach ($container->childNodes as $child) $out .= $doc->saveHTML($child);
+    return $out;
 }

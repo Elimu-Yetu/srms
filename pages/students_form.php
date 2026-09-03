@@ -116,8 +116,9 @@ if (is_post()) {
 <form method="post" enctype="multipart/form-data">
   <?= csrf_field() ?>
   <div class="grid grid--sidebar">
-    <div class="panel">
-      <div class="panel__body">
+    <div class="stack">
+      <div class="panel">
+        <div class="panel__body">
 
         <div class="section-head"><span></span><h3>Student details</h3></div>
         <div class="formgrid formgrid--3">
@@ -195,8 +196,43 @@ if (is_post()) {
           <label for="notes">Office notes</label>
           <textarea id="notes" name="notes" rows="3" placeholder="Anything the office should know — referral, special needs, background."><?= e($f['notes']) ?></textarea>
         </div>
+        </div>
+      </div>
+
+    <div class="panel">
+      <div class="panel__head"><h2>Photo</h2></div>
+      <div class="panel__body">
+          <?php if (!empty($f['photo'])): ?>
+            <img class="photo-preview-large" src="<?= e(photo_url($f['photo'])) ?>" alt="">
+          <?php endif; ?>
+        <div class="field" style="margin:0">
+          <label for="photo">Passport photo</label>
+          <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+          <div class="hint">JPG, PNG or WEBP, up to 3 MB. Used on the ID card.</div>
+        </div>
+
+        <div style="margin-top:12px">
+            <div id="cam-area" class="cam-area">
+              <div class="cam-media">
+                <video id="cam-video" class="cam-video" width="160" height="120" autoplay playsinline></video>
+                <canvas id="cam-canvas" class="cam-canvas" width="160" height="120"></canvas>
+                <img id="cam-preview" class="photo-preview" src="" alt="Preview">
+              </div>
+              <div class="cam-controls">
+                <button type="button" id="cam-start" class="btn">Start camera</button>
+                <button type="button" id="cam-capture" class="btn" style="display:none">Capture</button>
+                <button type="button" id="cam-retake" class="btn btn--ghost" style="display:none">Retake</button>
+                <button type="button" id="cam-stop" class="btn btn--ghost" style="display:none">Stop camera</button>
+              </div>
+              <div style="flex:1">
+                <p class="tiny muted photo-hint">Or upload a file instead. Captured photos are submitted automatically with the form.</p>
+              </div>
+            </div>
+          <input type="hidden" id="photo_data" name="photo_data" value="">
+        </div>
       </div>
     </div>
+  </div>
 
     <div class="stack">
       <div class="panel">
@@ -256,19 +292,7 @@ if (is_post()) {
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panel__head"><h2>Photo</h2></div>
-        <div class="panel__body">
-          <?php if (!empty($f['photo'])): ?>
-            <img src="<?= e(photo_url($f['photo'])) ?>" alt="" style="width:100%;max-width:150px;border-radius:12px;border:1px solid var(--glass-edge);margin-bottom:10px">
-          <?php endif; ?>
-          <div class="field" style="margin:0">
-            <label for="photo">Passport photo</label>
-            <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
-            <div class="hint">JPG, PNG or WEBP, up to 3 MB. Used on the ID card.</div>
-          </div>
-        </div>
-      </div>
+      
 
       <div class="panel">
         <div class="panel__foot" style="border-top:0">
@@ -281,3 +305,166 @@ if (is_post()) {
     </div>
   </div>
 </form>
+
+<script>
+(function(){
+  const startBtn = document.getElementById('cam-start');
+  const captureBtn = document.getElementById('cam-capture');
+  const retakeBtn = document.getElementById('cam-retake');
+  const stopBtn = document.getElementById('cam-stop');
+  const video = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  const preview = document.getElementById('cam-preview');
+  const photoData = document.getElementById('photo_data');
+  const fileInput = document.getElementById('photo');
+  const largePreview = document.querySelector('.photo-preview-large');
+  let largeLiveVideo = null;
+  let stream = null;
+  const camArea = document.getElementById('cam-area');
+
+  function show(el, ok){ el.style.display = ok ? '' : 'none'; }
+
+  startBtn.addEventListener('click', async function(){
+    try {
+      // Prefer the rear camera on phones
+      const facing = window.matchMedia('(max-width: 600px)').matches ? 'environment' : 'user';
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
+      video.srcObject = stream;
+      video.play();
+      show(video, true); show(captureBtn, true); show(stopBtn, true); show(startBtn, false);
+      // On narrow screens, request fullscreen for a native camera-like feel
+      if (window.matchMedia('(max-width: 600px)').matches) {
+        try {
+          if (camArea.requestFullscreen) await camArea.requestFullscreen();
+          else if (video.requestFullscreen) await video.requestFullscreen();
+          video.classList.add('cam-fullscreen');
+        } catch (fsErr) {
+          video.classList.add('cam-fullscreen');
+        }
+      }
+      // Set passport pixel dimensions for capture area
+      const passport = { w: 360, h: 480 };
+      // apply dimensions to video, canvas and preview for an accurate passport-size capture
+      canvas.width = passport.w; canvas.height = passport.h;
+      video.width = passport.w; video.height = passport.h;
+      video.style.width = passport.w + 'px'; video.style.height = passport.h + 'px';
+      preview.style.width = passport.w + 'px'; preview.style.height = passport.h + 'px';
+      // add helper class for styling
+      video.classList.add('passport-size');
+      preview.classList.add('passport-size');
+      // show live video in the large photo area on wider screens
+      if (!window.matchMedia('(max-width: 600px)').matches) {
+        largeLiveVideo = document.createElement('video');
+        largeLiveVideo.autoplay = true; largeLiveVideo.playsInline = true; largeLiveVideo.muted = true;
+        largeLiveVideo.className = 'photo-preview-large';
+        try { largeLiveVideo.srcObject = stream; } catch (e) { /* older browsers */ }
+        if (largePreview && largePreview.parentNode) {
+          largePreview.parentNode.insertBefore(largeLiveVideo, largePreview);
+          largePreview.style.display = 'none';
+        } else {
+          // find the photo panel body to insert into when no existing image
+          const panelBody = fileInput.closest('.panel__body');
+          if (panelBody) {
+            panelBody.insertBefore(largeLiveVideo, panelBody.firstChild);
+            // create a hidden img placeholder to hold captured image later
+            largePreview = document.createElement('img');
+            largePreview.className = 'photo-preview-large';
+            largePreview.style.display = 'none';
+            panelBody.insertBefore(largePreview, largeLiveVideo.nextSibling);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('getUserMedia error', err);
+      alert('Could not access the camera. Check permissions.\n' + (err && err.message ? err.message : ''));
+    }
+  });
+
+  captureBtn.addEventListener('click', function(){
+    const w = canvas.width || 360; const h = canvas.height || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+    // Prefer WEBP when supported for smaller uploads, fallback to JPEG
+    let dataUrl;
+    try {
+      dataUrl = canvas.toDataURL('image/webp', 0.92);
+      if (!dataUrl || dataUrl.indexOf('data:image/webp') !== 0) throw new Error('no webp');
+    } catch (err) {
+      dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    }
+    photoData.value = dataUrl;
+    preview.src = dataUrl; show(preview, true);
+    // update the large photo area with the captured image immediately
+    if (largeLiveVideo) { try { largeLiveVideo.remove(); } catch (e) {} largeLiveVideo = null; }
+    if (largePreview) { largePreview.src = dataUrl; largePreview.style.display = 'block'; }
+    show(video, false); show(captureBtn, false); show(retakeBtn, true);
+    // clear file input so server uses captured photo
+    try { fileInput.value = ''; } catch (e) {}
+    // Exit fullscreen if active
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+    video.classList.remove('cam-fullscreen');
+    // remove passport-size class after capture so preview can scale responsively
+    video.classList.remove('passport-size');
+    preview.classList.add('passport-size');
+    // ensure the large preview shows the captured image
+    if (largePreview) { largePreview.src = dataUrl; largePreview.style.display = 'block'; }
+  });
+
+  retakeBtn.addEventListener('click', function(){
+    photoData.value = '';
+    preview.src = '';
+    show(preview, false);
+    show(video, true); show(captureBtn, true); show(retakeBtn, false);
+    if (largeLiveVideo) { try { largeLiveVideo.remove(); } catch (e) {} largeLiveVideo = null; }
+    if (largePreview) largePreview.style.display = 'none';
+  });
+
+  stopBtn.addEventListener('click', function(){
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    show(video, false); show(captureBtn, false); show(stopBtn, false); show(startBtn, true);
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+    video.classList.remove('cam-fullscreen');
+    if (largeLiveVideo) { try { largeLiveVideo.remove(); } catch (e) {} largeLiveVideo = null; }
+    if (largePreview) largePreview.style.display = largePreview.src ? 'block' : 'none';
+  });
+
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files && fileInput.files.length) {
+      // clear any captured data
+      photoData.value = '';
+      const f = fileInput.files[0];
+      // show a preview in the browser before upload
+      try {
+        const url = URL.createObjectURL(f);
+        preview.src = url;
+        show(preview, true);
+        show(video, false);
+        show(captureBtn, false);
+        show(retakeBtn, false);
+        // also show the selected image in the large photo area
+        if (largeLiveVideo) { try { largeLiveVideo.remove(); } catch (e) {} largeLiveVideo = null; }
+        if (largePreview) { largePreview.src = url; largePreview.style.display = 'block'; }
+        preview.onload = () => { try { URL.revokeObjectURL(url); } catch (e) {} };
+      } catch (e) {
+        // fallback: clear preview
+        preview.src = '';
+        show(preview, false);
+        show(video, false);
+        show(captureBtn, false);
+        show(retakeBtn, false);
+        if (largePreview) largePreview.style.display = 'none';
+      }
+    } else {
+      preview.src = '';
+      show(preview, false);
+      if (largePreview) largePreview.style.display = 'none';
+    }
+  });
+  // Stop camera if form is submitted or page unloads
+  const theForm = document.querySelector('form');
+  if (theForm) {
+    theForm.addEventListener('submit', function(){ if (stream) { stream.getTracks().forEach(t => t.stop()); } });
+  }
+  window.addEventListener('beforeunload', function(){ if (stream) { stream.getTracks().forEach(t => t.stop()); } });
+})();
+</script>

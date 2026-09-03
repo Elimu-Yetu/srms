@@ -71,6 +71,13 @@ if (can('certificates.manage')) {
             <td><?= badge(ucfirst($c['status']), status_tone($c['status'])) ?></td>
             <td class="right nowrap">
               <a class="btn btn--sm" target="_blank" href="<?= e(url('certificates.print', ['id' => $c['id']])) ?>"><?= icon('printer', 15) ?> Print</a>
+              <?php if (can('certificates.manage')): ?>
+                <form method="post" action="<?= e(url('certificates.act')) ?>" style="display:inline;margin-left:6px">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="certificate_id" value="<?= (int) $c['id'] ?>">
+                  <button class="btn btn--sm btn--danger" data-confirm="Unissue this certificate? This cannot be undone."><?= icon('x', 12) ?> Unissue</button>
+                </form>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>

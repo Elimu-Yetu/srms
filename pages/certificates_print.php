@@ -27,31 +27,39 @@ $st = settings();
   <div class="cert__wash"></div>
   <div class="cert__frame"></div>
   <div class="cert__inner">
-    <div class="cert__org"><?= e($st['org_name'] ?? ORG_NAME) ?></div>
-    <div class="cert__motto">"<?= e($st['org_motto'] ?? ORG_MOTTO) ?>"</div>
-
-    <div class="cert__kicker">Certificate of completion</div>
-    <div class="cert__title">Vocational Training</div>
-
-    <div class="cert__lead">This is to certify that</div>
-    <div class="cert__name"><?= e($full) ?></div>
-    <div class="cert__detail">Student number <?= e($c['student_no']) ?></div>
-
-    <div class="cert__course">has successfully completed <?= e($c['course']) ?></div>
-    <div class="cert__detail">
-      <?= (int) $c['duration_weeks'] ?>-week programme<?= $c['dept'] ? ' · ' . e($c['dept']) : '' ?>
-      <?= $c['grade'] ? ' · Awarded with ' . e($c['grade']) : '' ?>
+    <div class="cert__header">
+      <div class="cert__brand">
+        <img src="assets/img/logo.svg" alt="logo" class="cert__logo">
+        <div class="cert__brandtext">
+          <div class="cert__org"><?= e($st['org_name'] ?? ORG_NAME) ?></div>
+          <div class="cert__contact">P.O.BOX <?= e($st['org_address'] ?? '837') ?> · TEL: <?= e($st['org_phone'] ?? '') ?> · <?= e($st['org_email'] ?? '') ?></div>
+        </div>
+      </div>
+      <div class="cert__topright">&nbsp;</div>
     </div>
-    <div class="cert__detail">Issued on <?= e(d($c['issue_date'], 'd F Y')) ?></div>
+
+    <div class="cert__kicker">CERTIFICATE</div>
+    <div class="cert__subtitle">OF COMPLETION</div>
+
+    <div class="cert__present">this certificate presented For :</div>
+    <div class="cert__name"><?= strtoupper(e($full)) ?></div>
+
+    <div class="cert__desc">Has successfully completed the Basic <span class="cert__course-link"><?= e($c['course']) ?></span>, covering essential topics including HTML, CSS, JavaScript, Responsive Design, and Basic Server-Side Programming.</div>
+
+    <div class="cert__daterange"><?= strtoupper(e(d($c['issue_date'], 'F Y'))) ?><?= $c['duration_weeks'] ? ' TO ' . strtoupper(e(date('F Y', strtotime('+'.((int)$c['duration_weeks']*7).' days', strtotime($c['issue_date'])))) ) : '' ?></div>
+
+    <div class="cert__seal-holder">
+      <div class="cert__seal"><div>Elimu<br>Yetu<br>Seal</div></div>
+    </div>
 
     <div class="cert__signs">
       <div class="cert__sign">
-        <b><?= e($st['cert_signatory_1'] ?? '') ?></b>
-        <span><?= e($st['cert_signatory_1_title'] ?? '') ?></span>
+        <b>&nbsp;</b>
+        <span>AMOS KASARAMBA<br><small>(Director)</small></span>
       </div>
       <div class="cert__sign">
-        <b><?= e($st['cert_signatory_2'] ?? '') ?></b>
-        <span><?= e($st['cert_signatory_2_title'] ?? '') ?></span>
+        <b>&nbsp;</b>
+        <span>HEAD OF DEPARTMENT</span>
       </div>
     </div>
   </div>

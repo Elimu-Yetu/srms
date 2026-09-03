@@ -2,6 +2,34 @@
 /** Student register — searchable, filtered, role-scoped. */
 require_once BASE_PATH . '/views/icons.php';
 
+// Allow deletion from the index for admins or users with students.manage
+if (is_post() && (can('students.manage') || is_role('admin'))) {
+  csrf_check();
+  if (post('do') === 'delete') {
+    $sid = postInt('id');
+    $srec = row('SELECT * FROM students WHERE id = ?', [$sid]);
+    if (!$srec) {
+      flash('error', 'That student file was not found.');
+      redirect('students.index');
+    }
+    $enrols = (int) val('SELECT COUNT(*) FROM enrolments WHERE student_id = ?', [$sid], 0);
+    $certs  = (int) val('SELECT COUNT(*) FROM certificates WHERE student_id = ?', [$sid], 0);
+    if ($enrols > 0) {
+      flash('error', 'Cannot delete a student with active enrolments. Unenrol the student first.');
+      redirect('students.index');
+    }
+    if ($certs > 0) {
+      flash('error', 'That student has certificates issued. Remove certificates before deleting the student.');
+      redirect('students.index');
+    }
+    q('DELETE FROM id_cards WHERE student_id = ?', [$sid]);
+    q('DELETE FROM students WHERE id = ?', [$sid]);
+    audit('delete', 'students', $sid, $srec['student_no'] . ' ' . trim($srec['first_name'] . ' ' . $srec['last_name']));
+    flash('ok', 'Deleted student file for ' . e($srec['first_name'] . ' ' . $srec['last_name']) . '.');
+    redirect('students.index');
+  }
+}
+
 $search = getStr('q');
 $status = getStr('status');
 $dept   = getInt('dept');
@@ -135,6 +163,14 @@ $qs = ['q' => $search, 'status' => $status, 'dept' => $dept, 'course' => $course
               <a class="btn btn--sm btn--ghost" href="<?= e(url('students.view', ['id' => $s['id']])) ?>" title="Open file"><?= icon('eye', 15) ?></a>
               <?php if (can('students.manage')): ?>
                 <a class="btn btn--sm btn--ghost" href="<?= e(url('students.form', ['id' => $s['id']])) ?>" title="Edit"><?= icon('edit', 15) ?></a>
+              <?php endif; ?>
+              <?php if (can('students.manage') || is_role('admin')): ?>
+                <form method="post" style="display:inline-block;margin-left:6px">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="do" value="delete">
+                  <input type="hidden" name="id" value="<?= (int) $s['id'] ?>">
+                  <button class="btn btn--sm btn--ghost" data-confirm="Delete this student file?"><?= icon('x', 14) ?></button>
+                </form>
               <?php endif; ?>
             </td>
           </tr>

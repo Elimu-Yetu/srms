@@ -335,6 +335,60 @@ table.data thead tr.subhead th {
   font-size: 10px; letter-spacing: .08em; color: var(--ink-faint); font-weight: 600;
 }
 
+/* Advanced timetable grid (time rows × weekdays) */
+.timetable-adv { width: 100%; border-collapse: collapse; font-size: 14px; }
+.timetable-adv thead th { background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.82)); border-bottom: 2px solid var(--line); padding: 12px; text-transform: uppercase; font-weight:700; color:var(--ink-faint); }
+.timetable-adv th.time-head { width: 220px; text-align:left; padding-left:18px; }
+.timetable-adv td, .timetable-adv th { border: 1px solid rgba(20,35,29,.06); vertical-align: middle; }
+.timetable-adv tbody td { padding: 12px; min-height: 68px; }
+.time-col { font-weight:700; color:var(--ink-soft); padding-left:18px; white-space:nowrap; }
+.ttcell { background: #fff; }
+.timetable-adv thead th { background: linear-gradient(180deg,#EAF6FF,#DCEFFB); color:#0E4C83; }
+.timetable-adv thead th.day-friday { background: linear-gradient(180deg,#FDECEA,#F8E2E0); color: #C85E0A; }
+.timetable-adv td.day-friday { background: #FFF6F5; }
+.timetable-adv td { border-color: rgba(20,35,29,.06); }
+.timetable-adv thead th { border-bottom-width:1px; }
+.timetable-adv { border: 1px solid rgba(20,35,29,.06); }
+
+.timetable-adv-wrap { position: relative; }
+/* Vertical Friday label positioned outside the table to avoid affecting layout */
+.friday-vertical {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 8px; /* sit near the right edge of the timetable but inside the panel */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  color: var(--ey-orange-deep);
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: .12em;
+  line-height: 1;
+  padding: 0 6px;
+  background: rgba(248,230,228,0.04);
+  z-index: 6;
+  pointer-events: none;
+  width: auto;
+  min-width: 44px;
+}
+
+/* Narrow Friday column */
+.timetable-adv thead th.day-friday { width: 96px; }
+.timetable-adv td:nth-child(6) { width: 96px; }
+.tt-entry { display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
+.tt-entry__subject { font-weight:700; font-size:15px; color:var(--ey-blue-deep); }
+.tt-entry__meta { font-size:13px; color:var(--ink-soft); }
+.timetable-adv .empty-cell { text-align:center; color:var(--ink-faint); padding:24px; }
+
+@media (max-width: 900px) {
+  .timetable-adv thead th.time-head { display:none; }
+  .timetable-adv td.time-col { display:none; }
+  .timetable-adv td, .timetable-adv th { font-size:13px; padding:8px; }
+}
+
 .person { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .person__name { font-weight: 600; line-height: 1.2; }
 .person__meta { font-size: 11.5px; color: var(--ink-soft); font-family: var(--mono); }
@@ -620,3 +674,44 @@ table.data tfoot th {
 }
 .check input { width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--ey-green); flex: 0 0 auto; }
 .check:hover { color: var(--ink); }
+
+/* Photo / camera controls */
+.photo-panel img.photo-preview-large, .photo-panel video.photo-preview-large { width:100%; max-width:150px; border-radius:12px; border:1px solid var(--glass-edge); margin-bottom:10px; display:block; object-fit:cover; }
+.cam-area { display:flex; gap:12px; align-items:flex-start; }
+.cam-video, .cam-canvas, .photo-preview { border-radius:8px; }
+.cam-video { background:#111; width:160px; height:120px; display:none; border-radius:8px; object-fit:cover; }
+.cam-canvas { display:none; }
+.photo-preview { width:100%; max-width:160px; border-radius:8px; border:1px solid var(--glass-edge); display:none; object-fit:cover; }
+.cam-controls { flex:0 0 120px; display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+.cam-controls .btn { width:100%; }
+.photo-controls-wrap { margin-top:12px; }
+
+.cam-media { flex: 0 0 160px; }
+.photo-hint { margin: 6px 0 0; }
+
+/* Passport size helper - displayed in pixels for capture area */
+.passport-size { width: 360px !important; height: 480px !important; max-width: 100%; }
+@media (max-width: 600px) {
+  .passport-size { width: 80vw !important; height: auto !important; }
+}
+
+@media (max-width: 600px) {
+  .cam-area { flex-direction: column; gap:10px; }
+  .cam-video, .photo-preview { width:100%; max-width:100%; height:auto; }
+  .cam-controls { flex-direction:row; gap:8px; }
+  .cam-controls .btn { flex:1; }
+}
+
+/* Fullscreen camera view for mobile */
+.cam-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  border-radius: 0 !important;
+  object-fit: cover !important;
+  background: #000 !important;
+}
+
+.cam-fullscreen + .cam-controls { display: none !important; }

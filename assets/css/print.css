@@ -16,6 +16,17 @@
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
 }
 
+/* Add custom fonts by placing files in assets/fonts/ and uncommenting @font-face rules below.
+@font-face {
+  font-family: 'CertificateSerif';
+  src: url('../fonts/CertificateSerif.woff2') format('woff2'),
+       url('../fonts/CertificateSerif.woff') format('woff');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
 * { box-sizing: border-box; }
 
 body {
@@ -156,10 +167,23 @@ table.doc tfoot td { font-weight: 700; background: #F7F9F8; }
   background: #fff; position: relative; overflow: hidden;
   box-shadow: 0 18px 50px -20px rgba(20,35,29,.5);
 }
+/* diagonal coloured corner ribbons */
+.cert::before, .cert::after {
+  content: ""; position: absolute; width: 68mm; height: 68mm; z-index: 0;
+}
+.cert::before {
+  left: -18mm; top: -18mm; background: linear-gradient(135deg, #EE7A1B 0%, #EE7A1B 55%, transparent 56%);
+  transform: rotate(-12deg);
+}
+.cert::after {
+  right: -18mm; bottom: -18mm; background: linear-gradient(315deg, #1567AE 0%, #1567AE 55%, transparent 56%);
+  transform: rotate(12deg);
+}
 .cert__frame {
   position: absolute; inset: 9mm;
   border: .6mm solid var(--ey-blue);
   outline: .25mm solid var(--ey-green); outline-offset: 2.2mm;
+  z-index: 2;
 }
 .cert__wash {
   position: absolute; inset: 0;
@@ -169,34 +193,39 @@ table.doc tfoot td { font-weight: 700; background: #F7F9F8; }
     radial-gradient(70mm 45mm at 50% 55%, rgba(23,145,90,.06), transparent 72%);
 }
 .cert__seal {
-  position: absolute; right: 24mm; bottom: 30mm;
-  width: 30mm; height: 30mm; border-radius: 50%;
+  position: relative; width: 36mm; height: 36mm; border-radius: 50%;
   border: .5mm solid var(--ey-orange);
   display: grid; place-items: center; text-align: center;
-  background: rgba(255,255,255,.7);
-  transform: rotate(-8deg);
+  background: rgba(255,255,255,.85);
+  transform: rotate(-6deg);
 }
 .cert__seal div { font-size: 6.4pt; letter-spacing: .12em; text-transform: uppercase; color: var(--ey-orange); font-weight: 750; line-height: 1.5; }
-.cert__inner { position: relative; padding: 22mm 26mm; height: 100%; text-align: center; display: flex; flex-direction: column; }
+.cert__inner { position: relative; padding: 18mm 26mm; height: 100%; text-align: center; display: flex; flex-direction: column; z-index: 3; }
 .cert__org { font-size: 14pt; font-weight: 750; letter-spacing: .04em; }
 .cert__motto { font-family: var(--serif); font-style: italic; color: var(--ink-soft); font-size: 10.5pt; }
 .cert__kicker {
-  font-size: 9pt; text-transform: uppercase; letter-spacing: .38em;
-  color: var(--ey-blue); margin: 9mm 0 2mm; font-weight: 700;
+  font-size: 36px; text-transform: uppercase; letter-spacing: .12em;
+  color: #0b2440; margin: 6mm 0 2mm; font-weight: 900;
 }
-.cert__title { font-family: var(--serif); font-size: 30pt; line-height: 1.1; font-weight: 400; }
+.cert__title { font-family: var(--serif); font-size: 38pt; line-height: 1.02; font-weight: 800; color: #071635; }
+.cert__subtitle { font-family: var(--serif); font-size: 24px; line-height: 1.02; margin-bottom: 6mm; font-weight: 600; color: #0b2440; }
 .cert__lead { font-size: 10.5pt; color: var(--ink-soft); margin-top: 7mm; }
+.cert__present { font-size: 11pt; color: var(--ink-soft); margin-top: 8mm; text-transform: none; }
 .cert__name {
-  font-family: var(--serif); font-size: 27pt; font-weight: 600;
+  font-family: var(--serif); font-size: 36px; font-weight: 900;
   margin: 3mm 0 1mm; padding-bottom: 3mm;
-  border-bottom: .3mm solid var(--line); display: inline-block; min-width: 120mm;
+  display: inline-block; min-width: 160mm; color: #0b2440; letter-spacing: .06em;
 }
-.cert__course { font-size: 13pt; font-weight: 650; margin-top: 5mm; }
-.cert__detail { font-size: 10pt; color: var(--ink-soft); margin-top: 2mm; }
-.cert__signs { display: flex; gap: 30mm; justify-content: center; margin-top: auto; padding-bottom: 4mm; }
-.cert__sign { min-width: 60mm; }
-.cert__sign b { display: block; border-top: .3mm solid var(--ink); padding-top: 2mm; font-size: 10.5pt; }
-.cert__sign span { font-size: 8.6pt; color: var(--ink-soft); }
+.cert__desc { font-size: 14px; color: var(--ink-soft); margin-top: 6mm; max-width: 240mm; margin-left: auto; margin-right: auto; line-height:1.45 }
+.cert__daterange { font-size: 14px; font-weight: 800; margin-top: 8mm; letter-spacing: .06em }
+.cert__signs { display: flex; gap: 40mm; justify-content: center; margin-top: 12mm; padding-bottom: 6mm; align-items: flex-end; }
+.cert__sign { width: 70mm; text-align: center; }
+.cert__sign b { display: block; border-top: .3mm solid var(--ink); padding-top: 6mm; font-size: 12pt; min-height: 28px; }
+.cert__sign span { font-size: 10pt; color: var(--ink); display: block; margin-top: 6px; }
+
+.cert__course-link { color: var(--ey-blue); font-weight: 700; }
+.cert__daterange { font-size: 12pt; font-weight: 700; margin-top: 8mm; }
+.cert__seal-holder { display: flex; justify-content: center; margin-top: 6mm; }
 .cert__verify {
   position: absolute; left: 22mm; bottom: 13mm;
   font-size: 7.6pt; color: var(--ink-soft); text-align: left;

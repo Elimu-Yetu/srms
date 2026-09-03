@@ -50,10 +50,7 @@ $sessionCount = (int) val('SELECT COUNT(DISTINCT session_date) FROM attendance W
     <div class="stat__value"><?= (int) $c['duration_weeks'] ?><small> wks</small></div>
     <div class="stat__note"><?= (int) $c['duration_weeks'] ?> weeks training</div>
   </div>
-  <div class="stat stat--ink">
-    <div class="stat__label">Runs</div>
-    <div class="stat__value" style="font-size:15px"><?= e(d($c['start_date'], 'd M Y')) ?><br><?= e(d($c['end_date'], 'd M Y')) ?></div>
-  </div>
+  <!-- start/end dates removed from course view stats -->
 </div>
 
 <?php if ($c['description']): ?>
@@ -102,7 +99,18 @@ $sessionCount = (int) val('SELECT COUNT(DISTINCT session_date) FROM attendance W
                     <div class="tiny muted mono"><?= (int) $s['attended'] ?>/<?= (int) $s['sessions'] ?></div>
                   <?php endif; ?>
                 </td>
-                <td><?= badge(ucfirst($s['enrol_status']), status_tone($s['enrol_status'])) ?></td>
+                <td>
+                  <?= badge(ucfirst($s['enrol_status']), status_tone($s['enrol_status'])) ?>
+                  <?php if (can('students.enrol')): ?>
+                    <form method="post" action="<?= e(url('enrolments.act')) ?>" style="display:inline;margin-left:6px">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="do" value="unenrol">
+                      <input type="hidden" name="enrolment_id" value="<?= (int) $s['enrolment_id'] ?>">
+                      <input type="hidden" name="student_id" value="<?= (int) $s['id'] ?>">
+                      <button class="btn btn--sm btn--ghost" data-confirm="Remove this student from the course?" title="Unenrol"><?= icon('x', 12) ?></button>
+                    </form>
+                  <?php endif; ?>
+                </td>
               </tr>
             <?php endforeach; ?>
             </tbody>

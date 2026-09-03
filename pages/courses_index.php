@@ -2,6 +2,25 @@
 /** Courses. Students see this as "My courses". */
 require_once BASE_PATH . '/views/icons.php';
 
+if (is_post() && can('courses.manage')) {
+  csrf_check();
+  if (post('do') === 'delete') {
+    $cid = postInt('id');
+    $c = row('SELECT * FROM courses WHERE id = ?', [$cid]);
+    if ($c) {
+      $enrolled = (int) val('SELECT COUNT(*) FROM enrolments WHERE course_id = ?', [$cid], 0);
+      if ($enrolled) {
+        flash('error', 'Cannot delete a course with enrolled students.');
+      } else {
+        q('DELETE FROM courses WHERE id = ?', [$cid]);
+        audit('delete', 'courses', $cid, $c['code'] . ' ' . $c['name']);
+        flash('ok', 'Course removed.');
+      }
+    }
+    redirect('courses.index');
+  }
+}
+
 $isStudent = is_role('student');
 $me = $isStudent ? my_student() : null;
 $mine = my_course_ids();
@@ -31,7 +50,7 @@ if (can('courses.manage')) {
   <div class="panel">
     <div class="tablewrap">
       <table class="data">
-        <thead><tr><th>Course</th><th>Department</th><th>Facilitator</th><th>Runs</th><th class="right">Enrolled</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Course</th><th>Department</th><th>Facilitator</th><th class="right">Enrolled</th><th>Status</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($list as $c):
           $fill = (int) $c['capacity'] > 0 ? pct((int) $c['enrolled'], (int) $c['capacity']) : 0; ?>
@@ -42,7 +61,7 @@ if (can('courses.manage')) {
             </td>
             <td class="tiny"><?= e($c['dept'] ?? '—') ?></td>
             <td class="tiny"><?= e($c['facilitator'] ?? 'To be assigned') ?></td>
-            <td class="tiny mono"><?= e(d($c['start_date'], 'd M y')) ?> → <?= e(d($c['end_date'], 'd M y')) ?></td>
+            <!-- start/end dates removed from listing -->
             <td class="right" style="min-width:110px">
               <div class="mono tiny"><?= (int) $c['enrolled'] ?> / <?= (int) $c['capacity'] ?></div>
               <div class="segbar" style="height:5px;margin-top:3px"><span class="<?= $fill >= 100 ? 'seg-l' : 'seg-p' ?>" style="width:<?= min(100, $fill) ?>%"></span></div>
@@ -52,6 +71,12 @@ if (can('courses.manage')) {
               <a class="btn btn--sm btn--ghost" href="<?= e(url('courses.view', ['id' => $c['id']])) ?>"><?= icon('eye', 15) ?></a>
               <?php if (can('courses.manage')): ?>
                 <a class="btn btn--sm btn--ghost" href="<?= e(url('courses.form', ['id' => $c['id']])) ?>"><?= icon('edit', 15) ?></a>
+                <form method="post" style="display:inline-block;margin-left:6px">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="do" value="delete">
+                  <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+                  <button class="btn btn--sm btn--ghost" data-confirm="Delete this course?"><?= icon('x', 14) ?></button>
+                </form>
               <?php endif; ?>
             </td>
           </tr>

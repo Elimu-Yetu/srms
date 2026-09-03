@@ -27,7 +27,13 @@ if (is_post() && can('lessonplans.review')) {
 $page_title = $p['topic'];
 $page_sub   = e($p['code']) . ' · ' . e(d($p['plan_date'], 'l d F Y')) . ' · ' . e($p['facilitator'] ?? '');
 if (is_role('facilitator') && $p['review_status'] !== 'reviewed') {
-    $page_actions = '<a class="btn" href="' . e(url('lessonplans.form', ['id' => $id])) . '">' . icon('edit', 16) . ' Edit</a>';
+  $page_actions = '<a class="btn" href="' . e(url('lessonplans.form', ['id' => $id])) . '">' . icon('edit', 16) . ' Edit</a>';
+}
+// Admins/managers may edit or delete any plan (manage CRUD)
+if (can('lessonplans.review')) {
+  $page_actions = ($page_actions ?? '') . ' <a class="btn" href="' . e(url('lessonplans.form', ['id' => $id])) . '">' . icon('edit', 16) . ' Edit</a>'
+          . ' <form method="post" action="' . e(url('lessonplans.act')) . '" style="display:inline;margin-left:8px">' . csrf_field()
+          . '<input type="hidden" name="id" value="' . (int) $id . '"><button class="btn btn--danger" data-confirm="Delete this lesson plan?">' . icon('x', 12) . ' Delete</button></form>';
 }
 ?>
 <div class="grid grid--sidebar">
@@ -38,13 +44,66 @@ if (is_role('facilitator') && $p['review_status'] !== 'reviewed') {
     </div>
     <div class="panel__body">
       <div class="section-head"><span></span><h3>Learning objectives</h3></div>
-      <div class="tiny"><?= nl2br(e($p['objectives'])) ?></div>
+      <div class="tiny">
+        <?php
+          $obj = json_decode($p['objectives'] ?? '{}', true);
+          if (!$obj) { echo nl2br(e($p['objectives'])); }
+          else {
+            echo '<strong>Knowledge</strong><br>' . nl2br(e($obj['knowledge'] ?? '')) . '<br><br>';
+            echo '<strong>Skills</strong><br>' . nl2br(e($obj['skills'] ?? '')) . '<br><br>';
+            echo '<strong>Heart</strong><br>' . nl2br(e($obj['heart'] ?? '')) . '<br><br>';
+            echo '<strong>Practical</strong><br>' . nl2br(e($obj['practical'] ?? '')) . '<br>';
+          }
+        ?>
+      </div>
 
       <div class="section-head"><span></span><h3>Activities planned</h3></div>
-      <div class="tiny"><?= $p['activities'] ? nl2br(e($p['activities'])) : '<span class="muted">Not stated.</span>' ?></div>
+      <div class="tiny"><?= $p['activities'] ? sanitize_html($p['activities']) : '<span class="muted">Not stated.</span>' ?></div>
+
+      <?php $res = json_decode($p['resources'] ?? '{}', true) ?: []; ?>
+      <div class="section-head"><span></span><h3>Lesson details</h3></div>
+      <div class="tiny">
+        <?= e($res['classes_taught'] ?? '') ? '<strong>Classes taught:</strong> ' . e($res['classes_taught']) . '<br>' : '' ?>
+        <?= e($res['lesson_name'] ?? '') ? '<strong>Lesson name:</strong> ' . e($res['lesson_name']) . '<br>' : '' ?>
+        <?= e($res['duration_mins'] ?? '') ? '<strong>Duration:</strong> ' . e($res['duration_mins']) . ' mins<br>' : '' ?>
+        <?= e($res['unit'] ?? '') ? '<strong>Unit:</strong> ' . e($res['unit']) . '<br>' : '' ?>
+        <?= e($res['step'] ?? '') ? '<strong>Step:</strong> ' . e($res['step']) . '<br>' : '' ?>
+        <?= e($res['leader_teacher'] ?? '') ? '<strong>Leader:</strong> ' . e($res['leader_teacher']) . '<br>' : '' ?>
+        <?= e($res['assistants'] ?? '') ? '<strong>Assistants:</strong> ' . e($res['assistants']) . '<br>' : '' ?>
+        <?= e($res['start_time'] ?? '') || e($res['end_time'] ?? '') ? '<strong>Time:</strong> ' . e($res['start_time'] ?? '') . ' — ' . e($res['end_time'] ?? '') . '<br>' : '' ?>
+      </div>
+
+      <div class="section-head"><span></span><h3>Attendance</h3></div>
+      <div class="tiny">
+        <?php if (!empty($res['registered']) || !empty($res['attended'])): ?>
+          <?php $reg = $res['registered'] ?? []; $att = $res['attended'] ?? []; ?>
+          <strong>Registered:</strong> Boys: <?= e($reg['boys'] ?? '') ?>, Girls: <?= e($reg['girls'] ?? '') ?>, Total: <?= e($reg['total'] ?? '') ?><br>
+          <strong>Attended:</strong> Boys: <?= e($att['boys'] ?? '') ?>, Girls: <?= e($att['girls'] ?? '') ?>, Total: <?= e($att['total'] ?? '') ?><br>
+        <?php else: ?>
+          <span class="muted">No attendance recorded.</span>
+        <?php endif; ?>
+      </div>
+
+      <div class="section-head"><span></span><h3>Teacher notes</h3></div>
+      <div class="tiny">
+        <?php $tn = $res['teacher_notes'] ?? []; ?>
+        <?= $tn['comments'] ? nl2br(e($tn['comments'])) . '<br><br>' : '' ?>
+        <?= $tn['challenges'] ? '<strong>Challenges:</strong><br>' . nl2br(e($tn['challenges'])) . '<br><br>' : '' ?>
+        <?= $tn['suggested_changes'] ? '<strong>Suggested changes:</strong><br>' . nl2br(e($tn['suggested_changes'])) . '<br>' : '' ?>
+      </div>
 
       <div class="section-head"><span></span><h3>Resources needed</h3></div>
-      <div class="tiny"><?= $p['resources'] ? nl2br(e($p['resources'])) : '<span class="muted">None listed.</span>' ?></div>
+      <div class="tiny">
+        <?php
+          $res = json_decode($p['resources'] ?? '{}', true);
+          if (!$res) { echo nl2br(e($p['resources'])); }
+          else {
+            echo '<strong>Teaching methods</strong><br>' . nl2br(e($res['teaching_methods'] ?? '')) . '<br><br>';
+            echo '<strong>References</strong><br>' . nl2br(e($res['references'] ?? '')) . '<br><br>';
+            echo '<strong>Equipment & Materials</strong><br>' . nl2br(e($res['equipment'] ?? '')) . '<br>';
+          }
+        ?>
+      </div>
     </div>
   </div>
 

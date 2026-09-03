@@ -72,7 +72,7 @@ $st          = settings();
   <?php else: ?>
     <table class="doc">
       <thead>
-        <tr><th>Code</th><th>Course</th><th class="num">Weeks</th><th>Starts</th><th>Ends</th><th>Status</th></tr>
+        <tr><th>Code</th><th>Course</th><th class="num">Weeks</th><th>Status</th></tr>
       </thead>
       <tbody>
       <?php foreach ($enrols as $en): ?>
@@ -80,8 +80,6 @@ $st          = settings();
           <td style="font-family:var(--mono)"><?= e($en['code']) ?></td>
           <td><?= e($en['course']) ?></td>
           <td class="num"><?= (int) $en['duration_weeks'] ?></td>
-          <td><?= e(d($en['start_date'])) ?></td>
-          <td><?= e(d($en['end_date'])) ?></td>
           <td><?= e(ucfirst($en['status'])) ?></td>
         </tr>
       <?php endforeach; ?>

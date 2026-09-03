@@ -51,6 +51,7 @@ function routes(): array
         'lessonplans.index' => ['file' => 'lessonplans_index.php', 'roles' => ['superadmin', 'admin', 'manager', 'facilitator'], 'title' => 'Lesson plans'],
         'lessonplans.form'  => ['file' => 'lessonplans_form.php',  'cap' => 'lessonplans.submit', 'title' => 'Lesson plan'],
         'lessonplans.view'  => ['file' => 'lessonplans_view.php',  'roles' => ['superadmin', 'admin', 'manager', 'facilitator'], 'title' => 'Lesson plan'],
+        'lessonplans.act'   => ['file' => 'lessonplans_act.php',   'cap' => 'lessonplans.review', 'layout' => 'raw', 'title' => 'Lesson plan action'],
 
         'monthly.index' => ['file' => 'monthly_index.php', 'roles' => ['superadmin', 'admin', 'manager', 'facilitator'], 'title' => 'Monthly reports'],
         'monthly.form'  => ['file' => 'monthly_form.php',  'cap' => 'monthly.submit', 'title' => 'Monthly report'],
@@ -70,6 +71,7 @@ function routes(): array
         'certificates.index' => ['file' => 'certificates_index.php', 'roles' => ['superadmin', 'admin'], 'title' => 'Certificates'],
         'certificates.issue' => ['file' => 'certificates_issue.php', 'cap' => 'certificates.manage', 'title' => 'Issue a certificate'],
         'certificates.print' => ['file' => 'certificates_print.php', 'roles' => ['superadmin', 'admin'], 'layout' => 'print', 'title' => 'Certificate'],
+        'certificates.act' => ['file' => 'certificates_act.php', 'cap' => 'certificates.manage', 'layout' => 'raw', 'title' => 'Certificates action'],
 
         // ── reports ─────────────────────────────────────────────────────────
         'reports.index' => ['file' => 'reports_index.php', 'cap' => 'reports.view', 'title' => 'Reports'],
@@ -124,7 +126,7 @@ function nav_sections(): array
 
     // Teaching
     $teach = array_filter([
-        can('attendance.mark') ? nav('attendance.mark', 'Take attendance', 'check') : null,
+        is_role('facilitator') ? nav('attendance.mark', 'Take attendance', 'check') : null,
         can('attendance.view') ? nav('attendance.register', 'Attendance register', 'list') : null,
         can('timetable.manage') ? nav('timetable.index', 'Timetable', 'calendar')
                                 : (is_role('facilitator') ? nav('timetable.mine', 'My timetable', 'calendar') : null),

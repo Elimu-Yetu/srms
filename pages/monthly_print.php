@@ -48,7 +48,11 @@ $sections = [
 
   <?php foreach ($sections as $label => $body): ?>
     <div class="docsection"><?= e($label) ?></div>
-    <div style="font-size:12.5px;white-space:pre-wrap"><?= $body !== '' && $body !== null ? e($body) : '—' ?></div>
+    <?php if ($label === 'Topics covered'): ?>
+      <div style="font-size:12.5px"><?= $body !== '' && $body !== null ? sanitize_html($body) : '—' ?></div>
+    <?php else: ?>
+      <div style="font-size:12.5px;white-space:pre-wrap"><?= $body !== '' && $body !== null ? e($body) : '—' ?></div>
+    <?php endif; ?>
   <?php endforeach; ?>
 
   <?php if ($m['review_comment']): ?>

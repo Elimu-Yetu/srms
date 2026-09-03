@@ -288,7 +288,7 @@ function can(string $ability): bool
         'courses.view'       => ['admin', 'manager', 'facilitator'],
         'courses.manage'     => ['admin', 'manager'],
         // teaching
-        'attendance.mark'    => ['facilitator', 'admin', 'manager'],
+        'attendance.mark'    => ['facilitator'],
         'attendance.view'    => ['admin', 'manager', 'facilitator'],
         'marks.manage'       => ['facilitator', 'admin', 'manager'],
         'timetable.manage'   => ['admin', 'manager'],
@@ -302,7 +302,7 @@ function can(string $ability): bool
         'certificates.manage' => ['admin'],
         // kitchen
         'kitchen.record'     => ['kitchen'],
-        'kitchen.view'       => ['kitchen', 'admin', 'manager'],
+        'kitchen.view'       => ['kitchen', 'admin'],
         // system
         'reports.view'       => ['admin', 'manager', 'facilitator'],
         'users.manage'       => ['admin'],

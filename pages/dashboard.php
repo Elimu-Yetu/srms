@@ -236,11 +236,13 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
   ?>
 
   <div class="grid grid--4">
+    <?php if (can('attendance.mark')): ?>
     <a class="stat stat--green" href="<?= e(url('attendance.mark')) ?>">
       <div class="stat__label">Marks entered today</div>
       <div class="stat__value"><?= $markedToday ?></div>
       <div class="stat__note"><?= $markedToday ? 'Attendance recorded' : 'Attendance not taken yet' ?></div>
     </a>
+    <?php endif; ?>
     <a class="stat" href="<?= e(url('students.index')) ?>">
       <div class="stat__label">My students</div>
       <div class="stat__value"><?= $myStudents ?></div>
@@ -275,7 +277,9 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
     <div class="panel">
       <div class="panel__head">
         <h2>Today — <?= e(day_name($today)) ?></h2>
-        <a class="btn btn--sm btn--green" href="<?= e(url('attendance.mark')) ?>"><?= icon('check', 16) ?> Take attendance</a>
+        <?php if (can('attendance.mark')): ?>
+          <a class="btn btn--sm btn--green" href="<?= e(url('attendance.mark')) ?>"><?= icon('check', 16) ?> Take attendance</a>
+        <?php endif; ?>
       </div>
       <?php if (!$lessons): ?>
         <div class="empty">
@@ -290,8 +294,10 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
               <div class="ttcard__time"><?= e($l['start_time']) ?>–<?= e($l['end_time']) ?> · <?= e($l['room'] ?: 'Room TBA') ?></div>
               <div class="ttcard__subject"><?= e($l['subject']) ?></div>
               <div class="ttcard__meta"><?= e($l['code']) ?> · <?= e($l['course']) ?></div>
-              <div class="btnrow" style="margin-top:8px">
-                <a class="btn btn--sm" href="<?= e(url('attendance.mark', ['course_id' => $l['course_id']])) ?>">Attendance</a>
+                <div class="btnrow" style="margin-top:8px">
+                <?php if (can('attendance.mark')): ?>
+                  <a class="btn btn--sm" href="<?= e(url('attendance.mark', ['course_id' => $l['course_id']])) ?>">Attendance</a>
+                <?php endif; ?>
                 <a class="btn btn--sm btn--ghost" href="<?= e(url('courses.view', ['id' => $l['course_id']])) ?>">Class list</a>
               </div>
             </div>
@@ -378,13 +384,12 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
           <?php else: ?>
             <div class="tablewrap">
               <table class="data">
-                <thead><tr><th>Course</th><th>Facilitator</th><th>Ends</th><th>Status</th></tr></thead>
+                <thead><tr><th>Course</th><th>Facilitator</th><th>Status</th></tr></thead>
                 <tbody>
                 <?php foreach ($enrols as $en): ?>
                   <tr>
                     <td><strong><?= e($en['course']) ?></strong><div class="tiny mono muted"><?= e($en['code']) ?></div></td>
                     <td class="tiny"><?= e($en['facilitator'] ?? 'To be assigned') ?></td>
-                    <td class="tiny mono"><?= e(d($en['end_date'])) ?></td>
                     <td><?= badge(ucfirst($en['status']), status_tone($en['status'])) ?></td>
                   </tr>
                 <?php endforeach; ?>

@@ -11,14 +11,19 @@ $errors  = [];
 if (is_post()) {
     csrf_check();
     if (post('do') === 'delete') {
-        $sid = postInt('id');
+    $idsRaw = post('id');
+    $ids = array_filter(array_map('intval', explode(',', $idsRaw)));
+    if ($ids) {
+      foreach ($ids as $sid) {
         $slot = row('SELECT t.*, c.code FROM timetable t JOIN courses c ON c.id = t.course_id WHERE t.id = ?', [$sid]);
         if ($slot && in_array((int) $slot['course_id'], array_map('intval', $mine), true)) {
-            q('DELETE FROM timetable WHERE id = ?', [$sid]);
-            audit('delete', 'timetable', $sid, $slot['code'] . ' ' . $slot['subject']);
-            flash('ok', 'Slot removed.');
+          q('DELETE FROM timetable WHERE id = ?', [$sid]);
+          audit('delete', 'timetable', $sid, $slot['code'] . ' ' . $slot['subject']);
         }
-        redirect('timetable.index', $filter ? ['course_id' => $filter] : []);
+      }
+      flash('ok', 'Slot removed.');
+    }
+    redirect('timetable.index', $filter ? ['course_id' => $filter] : []);
     }
 
     $courseId = postInt('course_id');
@@ -66,8 +71,51 @@ $slots = rows("SELECT t.*, c.code, c.name AS course, u.name AS facilitator
                WHERE t.course_id IN (" . in_list($mine) . ") $where
                ORDER BY t.day_of_week, t.start_time", $args);
 
+// Group slots per day
 $grid = [];
 foreach ($slots as $s) $grid[(int) $s['day_of_week']][] = $s;
+
+// Merge adjacent consecutive slots for the same subject/course/room/facilitator on the same day
+$mergedSlots = [];
+for ($d = 1; $d <= 5; $d++) {
+  $daySlots = $grid[$d] ?? [];
+  usort($daySlots, fn($a,$b) => strcmp($a['start_time'], $b['start_time']));
+  $out = [];
+  foreach ($daySlots as $s) {
+    $last = end($out);
+    if ($last && $last['subject'] === $s['subject'] && $last['course_id'] == $s['course_id']
+      && ($last['room'] ?? '') === ($s['room'] ?? '') && ($last['facilitator_id'] ?? '') == ($s['facilitator_id'] ?? '')
+      && $last['end_time'] === $s['start_time']) {
+      // extend last slot
+      $out[key($out)]['end_time'] = $s['end_time'];
+      $out[key($out)]['ids'][] = (int)$s['id'];
+    } else {
+      $s['ids'] = [(int)$s['id']];
+      $out[] = $s;
+    }
+  }
+  $mergedSlots[$d] = $out;
+}
+
+// Build time rows from merged slots
+$timeRows = [];
+foreach ($mergedSlots as $day => $slArr) {
+  foreach ($slArr as $s) {
+    $k = $s['start_time'] . '|' . $s['end_time'];
+    $timeRows[$k] = ['start' => $s['start_time'], 'end' => $s['end_time']];
+  }
+}
+// Sort time rows
+usort($timeRows, function($a, $b) { return strcmp($a['start'], $b['start']); });
+
+// Map merged slots by day and time key for quick lookup
+$slotMap = [];
+foreach ($mergedSlots as $day => $arr) {
+  foreach ($arr as $s) {
+    $k = $s['start_time'] . '|' . $s['end_time'];
+    $slotMap[(int)$day][$k] = $s;
+  }
+}
 $page_sub = 'Slots repeat every week. Clashes on room or facilitator are blocked when you save.';
 ?>
 <?php foreach ($errors as $er): ?>
@@ -151,32 +199,81 @@ $page_sub = 'Slots repeat every week. Clashes on room or facilitator are blocked
     <div class="empty"><h3>The timetable is empty</h3><p>Add the first slot above and students will see it in their portal.</p></div>
   <?php else: ?>
     <div class="panel__body">
-      <table class="tt">
-        <thead><tr><?php for ($i = 1; $i <= 6; $i++): ?><th><?= e(day_name($i)) ?></th><?php endfor; ?></tr></thead>
-        <tbody>
-          <tr>
-          <?php for ($i = 1; $i <= 6; $i++): ?>
-            <td>
-              <div class="rail__label" style="padding-left:0"><?= e(day_name($i)) ?></div>
-              <?php foreach ($grid[$i] ?? [] as $s): ?>
-                <div class="ttcard <?= $i % 3 === 0 ? 'ttcard--blue' : ($i % 3 === 1 ? '' : 'ttcard--orange') ?>">
-                  <div class="ttcard__time"><?= e($s['start_time']) ?>–<?= e($s['end_time']) ?></div>
-                  <div class="ttcard__subject"><?= e($s['subject']) ?></div>
-                  <div class="ttcard__meta"><?= e($s['code']) ?><?= $s['room'] ? ' · ' . e($s['room']) : '' ?></div>
-                  <div class="ttcard__meta"><?= e($s['facilitator'] ?? '') ?></div>
-                  <form method="post" style="margin-top:5px">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="do" value="delete">
-                    <input type="hidden" name="id" value="<?= (int) $s['id'] ?>">
-                    <button class="btn btn--sm btn--ghost" data-confirm="Remove this slot from the timetable?"><?= icon('x', 14) ?></button>
-                  </form>
-                </div>
-              <?php endforeach; ?>
-            </td>
-          <?php endfor; ?>
-          </tr>
-        </tbody>
-      </table>
+      <div class="timetable-adv-wrap">
+        <table class="timetable-adv">
+          <thead>
+            <tr>
+              <th class="time-head">TIME</th>
+              <?php for ($d = 1; $d <= 5; $d++): ?>
+                <th class="<?= $d === 5 ? 'day-friday' : '' ?>"><?= e(day_name($d)) ?></th>
+              <?php endfor; ?>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (!$timeRows): ?>
+              <tr><td colspan="6" class="empty-cell">No timetable slots to show.</td></tr>
+            <?php else: ?>
+              <?php $fridayEmpty = empty($mergedSlots[5]); ?>
+              <?php
+                // Prepare indexed timeRows and maps for rowspan rendering
+                $timeRows = array_values($timeRows);
+                $numRows = count($timeRows);
+                $occupied = [];
+                $slotStartMap = [];
+                foreach ($mergedSlots as $day => $arr) {
+                  foreach ($arr as $s) {
+                    // find starting row index for this merged slot
+                    for ($ri = 0; $ri < $numRows; $ri++) {
+                      if ($timeRows[$ri]['start'] === $s['start_time'] && $timeRows[$ri]['end'] === $s['end_time']) {
+                        // compute rowspan as number of consecutive rows covered by this slot
+                        $rowspan = 0;
+                        for ($rj = $ri; $rj < $numRows; $rj++) {
+                          if ($timeRows[$rj]['start'] >= $s['start_time'] && $timeRows[$rj]['end'] <= $s['end_time']) $rowspan++; else break;
+                        }
+                        $slotStartMap[(int)$day][$ri] = ['slot' => $s, 'rowspan' => $rowspan];
+                        for ($rj = $ri; $rj < $ri + $rowspan; $rj++) $occupied[(int)$day][$rj] = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                for ($ri = 0; $ri < $numRows; $ri++): $tr = $timeRows[$ri];
+              ?>
+                <tr>
+                  <td class="time-col"><?= e($tr['start']) ?> – <?= e($tr['end']) ?></td>
+                  <?php for ($d = 1; $d <= 5; $d++): ?>
+                      <?php if ($d === 5 && $fridayEmpty): ?>
+                        <td class="ttcell"></td>
+                        <?php continue; ?>
+                      <?php endif; ?>
+                      <?php if (!empty($occupied[$d][$ri]) && empty($slotStartMap[$d][$ri])) { continue; } ?>
+                      <?php if (!empty($slotStartMap[$d][$ri])):
+                          $info = $slotStartMap[$d][$ri]; $s = $info['slot']; $rs = (int) $info['rowspan']; ?>
+                      <td class="ttcell" rowspan="<?= $rs ?>">
+                        <div class="tt-entry">
+                          <div class="tt-entry__subject"><?= e($s['subject']) ?></div>
+                            <div class="tt-entry__meta"><?= e($s['code']) ?><?= $s['room'] ? ' · ' . e($s['room']) : '' ?></div>
+                            <div class="tt-entry__meta tiny muted"><?= e($s['facilitator'] ?? '') ?></div>
+                            <form method="post" style="margin-top:6px">
+                              <?= csrf_field() ?>
+                              <input type="hidden" name="do" value="delete">
+                              <input type="hidden" name="id" value="<?= e(implode(',', array_map('intval', $s['ids']))) ?>">
+                              <button class="btn btn--sm btn--ghost" data-confirm="Remove this slot from the timetable?"><?= icon('x', 14) ?> Remove</button>
+                            </form>
+                        </div>
+                      </td>
+                    <?php else: ?>
+                      <td class="ttcell"></td>
+                    <?php endif; ?>
+                  <?php endfor; ?>
+                </tr>
+              <?php endfor; ?>
+            <?php endif; ?>
+          </tbody>
+        </table>
+        <div class="friday-vertical">TALENT SHOW</div>
+      </div>
     </div>
   <?php endif; ?>
 </div>
