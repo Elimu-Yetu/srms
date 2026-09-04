@@ -81,9 +81,22 @@ $card  = row('SELECT * FROM id_cards WHERE student_id = ? ORDER BY id DESC LIMIT
 $login = row('SELECT id, email, status, last_login FROM users WHERE student_id = ?', [$id]);
 
 $openCourses = can('students.enrol')
-    ? rows('SELECT id, code, name FROM courses WHERE status = ? AND id NOT IN
-            (SELECT course_id FROM enrolments WHERE student_id = ?) ORDER BY name', ['active', $id])
+    ? rows('SELECT c.id, c.code, c.name, d.name AS dept
+            FROM courses c
+            LEFT JOIN departments d ON d.id = c.department_id
+            WHERE c.status = ? AND c.id NOT IN
+            (SELECT course_id FROM enrolments WHERE student_id = ?)
+            ORDER BY d.name, c.name', ['active', $id])
     : [];
+$courseClashes = [];
+if ($openCourses) {
+    foreach ($openCourses as $oc) {
+        $cl = student_enrolment_timetable_clash($id, (int) $oc['id']);
+        if ($cl) {
+            $courseClashes[(int) $oc['id']] = $cl;
+        }
+    }
+}
 $threshold = (int) setting('attendance_threshold', '80');
 ?>
 
@@ -165,10 +178,13 @@ $threshold = (int) setting('attendance_threshold', '80');
           <?= csrf_field() ?>
           <input type="hidden" name="do" value="enrol">
           <input type="hidden" name="student_id" value="<?= $id ?>">
-          <select name="course_id" required style="max-width:320px">
+          <select name="course_id" required style="max-width:380px">
             <option value="">Add to a course…</option>
             <?php foreach ($openCourses as $c): ?>
-              <option value="<?= (int) $c['id'] ?>"><?= e($c['code'] . ' — ' . $c['name']) ?></option>
+              <?php $cl = $courseClashes[(int) $c['id']] ?? null; ?>
+              <option value="<?= (int) $c['id'] ?>">
+                <?= e($c['code'] . ' — ' . $c['name']) ?><?= !empty($c['dept']) ? ' [' . e($c['dept']) . ']' : '' ?><?= $cl ? ' ⚠️ (Clashes with ' . e($cl['cur_code']) . ')' : '' ?>
+              </option>
             <?php endforeach; ?>
           </select>
           <button class="btn btn--green"><?= icon('plus', 16) ?> Enrol</button>

@@ -46,7 +46,8 @@ if (empty($route['public'])) {
     if (isset($route['cap'])) {
         if (!can($route['cap'])) deny();
     } elseif (isset($route['roles'])) {
-        if (!in_array(role(), $route['roles'], true)) deny();
+        // Allow superadmin to open any role-restricted page
+        if (role() !== 'superadmin' && !in_array(role(), $route['roles'], true)) deny();
     } else {
         deny();
     }

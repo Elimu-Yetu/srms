@@ -14,7 +14,7 @@
     <div class="authcard__body">
       <h2>403 error</h2>
       <p class="muted">You are signed in as <strong><?= e(ROLES[role()] ?? role()) ?></strong>.
-         Ask an administrator if you need access to <span class="mono"><?= e(getStr('r')) ?></span>.</p>
+         Ask jimmy for access to <span class="mono"><?= e(getStr('r')) ?></span>.</p>
       <div class="btnrow"><a class="btn btn--primary" href="<?= e(url('dashboard')) ?>">Back to dashboard</a></div>
     </div>
   </div>

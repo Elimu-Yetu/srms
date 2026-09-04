@@ -291,9 +291,9 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
         <div class="panel__body" style="display:grid;gap:10px">
           <?php foreach ($lessons as $l): ?>
             <div class="ttcard" style="margin:0">
-              <div class="ttcard__time"><?= e($l['start_time']) ?>–<?= e($l['end_time']) ?> · <?= e($l['room'] ?: 'Room TBA') ?></div>
-              <div class="ttcard__subject"><?= e($l['subject']) ?></div>
-              <div class="ttcard__meta"><?= e($l['code']) ?> · <?= e($l['course']) ?></div>
+              <div class="ttcard__time"><?= e($l['start_time']) ?> – <?= e($l['end_time']) ?><?= $l['room'] ? ' · ' . e($l['room']) : '' ?></div>
+              <div class="ttcard__subject"><?= e($l['course']) ?></div>
+              <div class="ttcard__meta"><?= e($l['code']) ?></div>
                 <div class="btnrow" style="margin-top:8px">
                 <?php if (can('attendance.mark')): ?>
                   <a class="btn btn--sm" href="<?= e(url('attendance.mark', ['course_id' => $l['course_id']])) ?>">Attendance</a>
@@ -407,9 +407,8 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
             <div class="panel__body" style="display:grid;gap:8px">
               <?php foreach ($next as $l): ?>
                 <div class="ttcard ttcard--blue" style="margin:0">
-                  <div class="ttcard__time"><?= e($l['start_time']) ?>–<?= e($l['end_time']) ?> · <?= e($l['room'] ?: 'Room TBA') ?></div>
-                  <div class="ttcard__subject"><?= e($l['subject']) ?></div>
-                  <div class="ttcard__meta"><?= e($l['course']) ?></div>
+                  <div class="ttcard__time"><?= e($l['start_time']) ?> – <?= e($l['end_time']) ?><?= $l['room'] ? ' · ' . e($l['room']) : '' ?></div>
+                  <div class="ttcard__subject"><?= e($l['course']) ?></div>
                 </div>
               <?php endforeach; ?>
             </div>

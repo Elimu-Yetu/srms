@@ -23,6 +23,21 @@ switch (post('do')) {
             flash('warn', e($c['code']) . ' is full (' . $taken . ' of ' . (int) $c['capacity'] . '). Raise the capacity first.');
             break;
         }
+
+        $clash = student_enrolment_timetable_clash($studentId, $courseId);
+        if ($clash) {
+            $day = day_name((int) $clash['day_of_week']);
+            $deptInfo = '';
+            if (!empty($clash['new_dept']) && !empty($clash['cur_dept']) && $clash['new_dept'] !== $clash['cur_dept']) {
+                $deptInfo = ' (between ' . e($clash['new_dept']) . ' and ' . e($clash['cur_dept']) . ')';
+            }
+            flash('warn', 'Timetable clash: <strong>' . e($clash['new_course']) . '</strong> '
+                . 'shares the same time with enrolled course <strong>' . e($clash['cur_course']) . '</strong>' . $deptInfo
+                . ' on ' . e($day) . ' (' . e($clash['new_start']) . '–' . e($clash['new_end']) . '). '
+                . 'The student cannot have both courses because their timetables interfere.');
+            break;
+        }
+
         insert('enrolments', [
             'student_id' => $studentId, 'course_id' => $courseId,
             'enrolled_on' => date('Y-m-d'), 'status' => 'active', 'created_at' => now(),

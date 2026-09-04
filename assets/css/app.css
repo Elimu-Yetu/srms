@@ -351,32 +351,37 @@ table.data thead tr.subhead th {
 .timetable-adv { border: 1px solid rgba(20,35,29,.06); }
 
 .timetable-adv-wrap { position: relative; }
-/* Vertical Friday label positioned outside the table to avoid affecting layout */
-.friday-vertical {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 8px; /* sit near the right edge of the timetable but inside the panel */
-  display: flex;
+
+/* Friday Talent Show whole-day cell */
+.timetable-adv td.day-friday-cell {
+  background: #FFF6F5;
+  text-align: center;
+  vertical-align: middle;
+  padding: 16px 8px;
+  border-color: rgba(200, 94, 10, 0.12);
+}
+
+.talent-show-vertical {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   writing-mode: vertical-rl;
   text-orientation: upright;
-  color: var(--ey-orange-deep);
-  font-weight: 900;
-  font-size: 26px;
-  letter-spacing: .12em;
-  line-height: 1;
-  padding: 0 6px;
-  background: rgba(248,230,228,0.04);
-  z-index: 6;
-  pointer-events: none;
-  width: auto;
-  min-width: 44px;
+  letter-spacing: 0.22em;
+  font-weight: 800;
+  font-size: 16px;
+  color: #C85E0A;
+  text-transform: uppercase;
+  user-select: none;
+  margin: 0 auto;
+  line-height: 1.2;
 }
+
+.friday-vertical { display: none; }
 
 /* Narrow Friday column */
 .timetable-adv thead th.day-friday { width: 96px; }
+.timetable-adv td.day-friday-cell,
 .timetable-adv td:nth-child(6) { width: 96px; }
 .tt-entry { display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
 .tt-entry__subject { font-weight:700; font-size:15px; color:var(--ey-blue-deep); }

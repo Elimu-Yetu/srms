@@ -382,3 +382,41 @@ function sanitize_html(string $html): string
     foreach ($container->childNodes as $child) $out .= $doc->saveHTML($child);
     return $out;
 }
+
+/**
+ * Check if enrolling a student into a course causes any timetable clash
+ * with any of the student's currently active enrolled courses.
+ *
+ * Returns an associative array of clash details if a conflict exists, or null otherwise.
+ */
+function student_enrolment_timetable_clash(int $studentId, int $newCourseId): ?array
+{
+    return row(
+        "SELECT t_new.day_of_week,
+                t_new.start_time AS new_start,
+                t_new.end_time   AS new_end,
+                c_new.name       AS new_course,
+                c_new.code       AS new_code,
+                d_new.name       AS new_dept,
+                t_cur.start_time AS cur_start,
+                t_cur.end_time   AS cur_end,
+                c_cur.name       AS cur_course,
+                c_cur.code       AS cur_code,
+                d_cur.name       AS cur_dept
+         FROM timetable t_new
+         JOIN courses c_new ON c_new.id = t_new.course_id
+         LEFT JOIN departments d_new ON d_new.id = c_new.department_id
+         JOIN timetable t_cur ON t_cur.day_of_week = t_new.day_of_week
+                              AND t_cur.start_time < t_new.end_time
+                              AND t_cur.end_time   > t_new.start_time
+         JOIN courses c_cur ON c_cur.id = t_cur.course_id
+         LEFT JOIN departments d_cur ON d_cur.id = c_cur.department_id
+         JOIN enrolments e ON e.course_id = t_cur.course_id
+                           AND e.student_id = ?
+                           AND e.status = 'active'
+         WHERE t_new.course_id = ?
+         LIMIT 1",
+        [$studentId, $newCourseId]
+    );
+}
+
