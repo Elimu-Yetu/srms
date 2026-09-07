@@ -1,18 +1,5 @@
 <?php
-/**
- * Authentication, roles and permissions.
- *
- * Six roles:
- *   superadmin  full access; INVISIBLE to every other role (never listed,
- *               never counted, its audit entries are hidden)
- *   admin       system management: departments, courses, registrations, staff,
- *               timetable, certificates, IDs, reports, settings
- *   manager     line manager — owns one department: its courses, facilitators,
- *               students, lesson-plan and monthly-report review
- *   facilitator teaching staff — attendance, marks, lesson plans, monthly report
- *   student     own courses, timetable, attendance, marks, certificate
- *   kitchen     kitchen admin — daily tea and meal counts only
- */
+
 
 const ROLES = [
     'superadmin'  => 'Super Admin',

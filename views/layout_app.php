@@ -50,8 +50,9 @@ $isKitchen = is_role('kitchen');
     </nav>
 
     <div class="rail__foot">
-      <div class="tiny"><?= e(APP_NAME) ?> v<?= APP_VERSION ?></div>
-      <div class="tiny">Academic year <?= e(setting('academic_year', date('Y'))) ?></div>
+     
+      <p style="font-family:verdana;font-size:11px;color:var(--ink-soft);margin-top:4px">
+        &copy; <?= e(setting('org_name', ORG_NAME)) ?> <br> <p style="font-size:0.5rem;">Made with ❤️ by jimmy</p></p>
     </div>
   </aside>
 

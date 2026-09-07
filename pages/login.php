@@ -18,7 +18,7 @@ $hasUsers = (int) val('SELECT COUNT(*) FROM users', [], 0);
 <div class="authcard">
   <div class="ribbon" style="border-radius:0"></div>
   <div class="authcard__body">
-    <div class="authcard__mark">EY</div>
+    <!-- <div class="authcard__mark">EYDO</div> -->
     <div class="eyebrow">Student Registration &amp; Management</div>
     <h1 style="margin:2px 0 3px"><?= e(setting('org_name', ORG_NAME)) ?></h1>
     <p class="muted tiny" style="font-style:italic"><?= e(setting('org_motto', ORG_MOTTO)) ?></p>
@@ -40,13 +40,13 @@ $hasUsers = (int) val('SELECT COUNT(*) FROM users', [], 0);
           <label for="password">Password</label>
           <input id="password" name="password" type="password" autocomplete="current-password">
         </div>
-        <p class="tiny" style="margin:4px 0 12px;text-align:right">
+        <p class="tiny" style="margin:4px 0 12px;text-align:center">
           A student? <a href="<?= e(url('student.login')) ?>">Log in with your registration number &rarr;</a>
         </p>
       <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">Sign in</button>
     </form>
     <p class="tiny muted center" style="margin:14px 0 0">
-      Administrators sign in with email + password. Forgot your password? Ask an administrator.
+      Forgot your password? Ask an administrator.
     </p>
   </div>
   <div class="authcard__foot" style="display:flex;gap:10px;align-items:center">

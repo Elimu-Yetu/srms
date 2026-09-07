@@ -1,8 +1,5 @@
 <?php
-/**
- * Audit trail. Entries made by a super admin are filtered out for admins —
- * the invisibility rule applies to the log too, or it would leak.
- */
+
 require_once BASE_PATH . '/views/icons.php';
 
 $action = getStr('action');

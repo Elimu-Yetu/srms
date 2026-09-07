@@ -76,7 +76,8 @@ $page_actions = '<a class="btn" target="_blank" href="' . e(url('reports.show', 
         <tbody>
         <?php foreach ($class as $s):
           $eid = (int) $s['enrolment_id']; $ok = 0; $tot = 0; ?>
-          <tr>
+   
+   <tr>
             <td><a href="<?= e(url('students.view', ['id' => $s['id']])) ?>"><?= e($s['first_name'] . ' ' . $s['last_name']) ?></a>
                 <div class="tiny mono muted"><?= e($s['student_no']) ?></div></td>
             <?php foreach ($dates as $dt):

@@ -3,8 +3,8 @@
 Student Registration & Management System for **Elimu Yetu Kituo cha Jamii**.
 *Ninaweza, nitafanya, najiamini.*
 
-Version 1.0.0 · PHP 8 · runs on one computer on the centre's own network, with no
-internet connection and no monthly cost.
+Version 1.0.0 ·
+Made with love by jimmy.dev366
 
 ---
 
@@ -137,8 +137,7 @@ Listed honestly, so nobody expects them:
   translation layer is not in place; adding it is a real piece of work, not a toggle.
 - **No CSV import** of students. Export works; import is riskier and needs a preview step.
 - **No SMS or email.** No Beem Africa or Africa's Talking integration. Notices are on-screen only.
--
-- **No photo capture from a webcam** — photos are uploaded as files.
+
 - **No automatic backups.** Backup is one button, pressed by a person.
 
 ---

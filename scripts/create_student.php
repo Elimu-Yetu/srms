@@ -1,5 +1,5 @@
 <?php
-// Create one student with a valid registration number and linked user account.
+/* Create one student with a valid registration number and linked user account.
 require_once __DIR__ . '/../app/config.php';
 require_once __DIR__ . '/../app/lib/db.php';
 require_once __DIR__ . '/../app/lib/helpers.php';

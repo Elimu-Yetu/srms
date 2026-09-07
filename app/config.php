@@ -27,5 +27,5 @@ define('BASE_PATH',    dirname(__DIR__));
 define('STORAGE_PATH', BASE_PATH . '/storage');
 define('UPLOAD_PATH',  STORAGE_PATH . '/uploads/photos');
 
-// Set to true only while developing — shows PHP errors on screen.
+// showing PHP errors
 define('DEBUG', true);

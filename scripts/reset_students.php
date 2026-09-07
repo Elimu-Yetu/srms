@@ -14,7 +14,8 @@ try {
     q("DELETE FROM users WHERE role = 'student'");
     q('DELETE FROM students');
 
-    // insert one sample student
+    // insert one sample student 
+    /*
     $studentNo = 'SAMPLE-001';
     $now = date('Y-m-d H:i:s');
     $sid = insert('students', [
@@ -39,6 +40,7 @@ try {
         'registered_by' => null,
         'registered_at' => $now,
     ]);
+*/
 
     // create a linked user account (empty password_hash)
     q('INSERT INTO users (name, email, phone, role, password_hash, department_id, student_id, status, must_reset, last_login, created_at)
