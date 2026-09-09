@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<html>
+    <head>
+<meta name="google-site-verification" content="WMeUHhxxTEOwHJv6muPucO__fpd06SrEQbDAANNDXAQ" />
+</head>
+<body>
 <?php
 /**
  * Elimu Yetu SRMS — single entry point.
@@ -79,3 +85,6 @@ require $page_file;
 $content = ob_get_clean();
 
 require BASE_PATH . '/views/layout_' . $layout . '.php';
+?>
+</body>
+</html>
