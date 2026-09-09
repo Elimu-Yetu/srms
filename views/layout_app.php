@@ -24,8 +24,8 @@ $isKitchen = is_role('kitchen');
     <div class="rail__brand">
       <div class="rail__mark">EY</div>
       <div>
-        <div class="rail__name">Elimu Yetu</div>
-        <div class="rail__motto">Ninaweza, nitafanya</div>
+        <div class="rail__name">Elimu Yetu Development Organization</div>
+        <div class="rail__motto">Ninaweza, nitafanya </div>
       </div>
     </div>
 
@@ -52,7 +52,7 @@ $isKitchen = is_role('kitchen');
     <div class="rail__foot">
      
       <p style="font-family:verdana;font-size:11px;color:var(--ink-soft);margin-top:4px">
-        &copy; <?= e(setting('org_name', ORG_NAME)) ?> <br> <p style="font-size:0.5rem;">Made with ❤️ by jimmy</p></p>
+        &copy; <?= e(setting('org_name', ORG_NAME)) ?> <br> <!--<p style="font-size:0.5rem;">Made with ❤️ by jimmy</p></p>-->
     </div>
   </aside>
 
