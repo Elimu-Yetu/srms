@@ -1,9 +1,3 @@
-<!DOCTYPE html>
-<html>
-    <head>
-<meta name="google-site-verification" content="WMeUHhxxTEOwHJv6muPucO__fpd06SrEQbDAANNDXAQ" />
-</head>
-<body>
 <?php
 /**
  * Elimu Yetu SRMS — single entry point.
@@ -11,6 +5,47 @@
  */
 
 require __DIR__ . '/app/config.php';
+
+// ── HTTPS enforcement ────────────────────────────────────────────────────────
+if (defined('ENFORCE_HTTPS') && ENFORCE_HTTPS && !isset($_SERVER['HTTPS']) && ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') !== 'https') {
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $uri  = $_SERVER['REQUEST_URI'] ?? '/';
+    header('Location: https://' . $host . $uri, true, 301);
+    exit;
+}
+
+// ── Security headers ─────────────────────────────────────────────────────────
+// Prevent browsers from sniffing MIME types (stops some XSS attacks via file upload).
+header('X-Content-Type-Options: nosniff');
+// Prevent the app from being embedded in iframes (clickjacking protection).
+header('X-Frame-Options: SAMEORIGIN');
+// Enable the browser's built-in XSS filter (legacy browsers).
+header('X-XSS-Protection: 1; mode=block');
+// Don't send the full URL as referrer to external sites.
+header('Referrer-Policy: strict-origin-when-cross-origin');
+// Limit which browser features are accessible.
+header('Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=()');
+// Tell HTTPS browsers to always use HTTPS for this domain (1 year).
+// Only sent over HTTPS to avoid breaking HTTP access during development.
+if (isset($_SERVER['HTTPS'])) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
+// Content Security Policy — restricts where scripts, styles, images can load from.
+// 'unsafe-inline' is needed because the app uses inline styles in some pages.
+// Tighten further (remove unsafe-inline) once the app moves to external stylesheets only.
+header(
+    "Content-Security-Policy: " .
+    "default-src 'self'; " .
+    "script-src 'self'; " .
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
+    "font-src 'self' https://fonts.gstatic.com; " .
+    "img-src 'self' data:; " .
+    "object-src 'none'; " .
+    "base-uri 'self'; " .
+    "form-action 'self';"
+);
+
+
 
 date_default_timezone_set(TIMEZONE);
 if (DEBUG) {
@@ -85,6 +120,3 @@ require $page_file;
 $content = ob_get_clean();
 
 require BASE_PATH . '/views/layout_' . $layout . '.php';
-?>
-</body>
-</html>

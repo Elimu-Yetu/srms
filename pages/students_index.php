@@ -22,6 +22,10 @@ if (is_post() && (can('students.manage') || is_role('admin'))) {
       flash('error', 'That student has certificates issued. Remove certificates before deleting the student.');
       redirect('students.index');
     }
+    if (!empty($srec['photo'])) {
+      delete_student_photo($srec['photo']);
+    }
+    q('DELETE FROM users WHERE student_id = ?', [$sid]);
     q('DELETE FROM id_cards WHERE student_id = ?', [$sid]);
     q('DELETE FROM students WHERE id = ?', [$sid]);
     audit('delete', 'students', $sid, $srec['student_no'] . ' ' . trim($srec['first_name'] . ' ' . $srec['last_name']));

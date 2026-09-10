@@ -1,0 +1,37 @@
+<VirtualHost *:80>
+	ServerAdmin webmaster@localhost
+	DocumentRoot /var/www/html
+
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+	# ── Enable .htaccess overrides for the SRMS app ──────────────────────────
+	<Directory /var/www/html/srms>
+		AllowOverride All
+		Require all granted
+		Options -Indexes -ExecCGI +FollowSymLinks
+	</Directory>
+
+	# ── Block direct access to sensitive subdirectories ──────────────────────
+	# These folders contain PHP source, config files, database, backups and logs.
+	<Directory /var/www/html/srms/app>
+		Require all denied
+	</Directory>
+
+	<Directory /var/www/html/srms/storage>
+		Require all denied
+	</Directory>
+
+	<Directory /var/www/html/srms/scripts>
+		Require all denied
+	</Directory>
+
+	# ── Block access to source/config file types ─────────────────────────────
+	<FilesMatch "\.(sql|sqlite|bak|log|lock|md|json|gitignore|env)$">
+		Require all denied
+	</FilesMatch>
+
+	# ── Remove Apache version from error pages ────────────────────────────────
+	ServerSignature Off
+
+</VirtualHost>

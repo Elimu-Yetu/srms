@@ -623,10 +623,57 @@ legend { padding: 0; }
     opacity: 0; pointer-events: none; transition: opacity .2s;
     border: 0; padding: 0;
   }
-  .burger { display: inline-flex; }
+  .burger { display: inline-flex; order: 1; }
   .content { padding: 16px 14px 40px; }
-  .topbar { padding: 10px 14px; }
-  .topbar__title h1 { font-size: 17px; }
+  .topbar {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+  .topbar__title {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .topbar__title h1 {
+    font-size: 16.5px;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+  .topbar__title .tiny {
+    font-size: 11.5px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .topbar .userchip {
+    order: 3;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .topbar > a[href*="logout"] {
+    order: 4;
+    flex-shrink: 0;
+  }
+  .topbar > .btnrow {
+    order: 5;
+    flex-basis: 100%;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    margin-top: 2px;
+    border-top: 1px solid var(--line);
+  }
+  .topbar > .btnrow form {
+    display: inline-flex;
+    margin: 0;
+  }
+  .topbar > .btnrow .btn {
+    padding: 7px 12px;
+    font-size: 12.5px;
+  }
   .grid--2, .grid--3, .grid--4 { grid-template-columns: minmax(0, 1fr); }
   .formgrid, .formgrid--3 { grid-template-columns: minmax(0, 1fr); }
   .userchip__name, .userchip__role { display: none; }

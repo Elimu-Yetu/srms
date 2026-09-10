@@ -8,7 +8,10 @@ if (is_post()) {
         $to = $_SESSION['intended'] ?? null;
         unset($_SESSION['intended']);
         flash('ok', 'Welcome back, <strong>' . e(current_user()['name']) . '</strong>.');
-        if ($to && str_contains($to, 'index.php')) { header('Location: ' . $to); exit; }
+        // Validate the intended URL is local before using it (prevent open redirect).
+        if ($to && str_contains($to, 'index.php') && !preg_match('#^https?://#', $to)) {
+            header('Location: ' . $to); exit;
+        }
         redirect('dashboard');
     }
 }

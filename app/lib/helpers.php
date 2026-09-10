@@ -22,7 +22,12 @@ function redirect(string $route, array $params = []): never
 
 function back(): never
 {
-    $ref = $_SERVER['HTTP_REFERER'] ?? url('dashboard');
+    $ref = $_SERVER['HTTP_REFERER'] ?? '';
+    // Only redirect to same-origin referers to prevent open redirect attacks.
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    if ($ref === '' || $host === '' || parse_url($ref, PHP_URL_HOST) !== $host) {
+        $ref = url('dashboard');
+    }
     header('Location: ' . $ref);
     exit;
 }
@@ -284,6 +289,21 @@ function save_photo(string $field, ?string &$error = null): ?string
 function photo_url(?string $file): ?string
 {
     return $file ? url('media.photo', ['f' => $file]) : null;
+}
+
+/**
+ * Permanently deletes a student's photo from storage.
+ */
+function delete_student_photo(?string $file): bool
+{
+    if (empty($file)) return false;
+    $filename = basename(trim($file));
+    if ($filename === '' || $filename === '.' || $filename === '..') return false;
+    $path = UPLOAD_PATH . '/' . $filename;
+    if (is_file($path)) {
+        return @unlink($path);
+    }
+    return false;
 }
 
 // ── Small view helpers ──────────────────────────────────────────────────────

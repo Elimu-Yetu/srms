@@ -191,7 +191,9 @@ function logout(): void
 function require_login(): void
 {
     if (!is_logged_in()) {
-        $_SESSION['intended'] = $_SERVER['REQUEST_URI'] ?? null;
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        // Only store relative URLs as the intended destination (prevent open redirect).
+        $_SESSION['intended'] = str_starts_with($uri, '/') ? $uri : null;
         redirect('login');
     }
 }

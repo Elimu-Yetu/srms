@@ -1,0 +1,9 @@
+# Deny ALL direct web access to this directory.
+# PHP source files in app/ must never be served directly.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

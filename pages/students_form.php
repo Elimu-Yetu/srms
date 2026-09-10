@@ -78,6 +78,9 @@ if (is_post()) {
         if ($newPhoto) $data['photo'] = $newPhoto;
 
         if ($isEdit) {
+            if ($newPhoto && !empty($rec['photo']) && $rec['photo'] !== $newPhoto) {
+                delete_student_photo($rec['photo']);
+            }
             update('students', $data, 'id = :wid', ['wid' => $id]);
             audit('update', 'students', $id, $rec['student_no']);
             flash('ok', 'Student file updated.');

@@ -22,10 +22,14 @@ define('MAX_LOGIN_TRIES', 5);         // then a 10-minute cool-off
 define('STUDENT_NO_PREFIX', 'EY');    // -> EY-01-2026-0001 (EY-Intake-Year-Sequence)
 define('TIMEZONE', 'Africa/Dar_es_Salaam');
 
+// ── Security flags ───────────────────────────────────────────────────────────
+// PRODUCTION: Set both to true when hosted publicly with an SSL/TLS certificate.
+// LOCAL DEV:  Set ENFORCE_HTTPS = false and DEBUG = true for local testing.
+define('ENFORCE_HTTPS', false);  // Set to true in production (requires SSL cert)
+define('DEBUG',         false);  // Set to true during local dev only; NEVER true in production
+
 // ── Paths ───────────────────────────────────────────────────────────────────
 define('BASE_PATH',    dirname(__DIR__));
 define('STORAGE_PATH', BASE_PATH . '/storage');
 define('UPLOAD_PATH',  STORAGE_PATH . '/uploads/photos');
 
-// showing PHP errors
-define('DEBUG', true);

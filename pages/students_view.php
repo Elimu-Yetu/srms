@@ -26,6 +26,10 @@ if (is_post() && post('do') === 'delete') {
     redirect('students.view', ['id' => $id]);
   }
   // safe to delete
+  if (!empty($s['photo'])) {
+    delete_student_photo($s['photo']);
+  }
+  q('DELETE FROM users WHERE student_id = ?', [$id]);
   q('DELETE FROM id_cards WHERE student_id = ?', [$id]);
   q('DELETE FROM students WHERE id = ?', [$id]);
   audit('delete', 'students', $id, $s['student_no'] . ' ' . trim($s['first_name'] . ' ' . $s['last_name']));
