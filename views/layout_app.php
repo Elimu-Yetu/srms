@@ -22,10 +22,12 @@ $isKitchen = is_role('kitchen');
   <aside class="rail" id="rail">
     <div class="ribbon" style="border-radius:0"></div>
     <div class="rail__brand">
-      <div class="rail__mark">EY</div>
+      <div class="rail__mark">
+        <img src="assets/img/logo.svg" alt="<?= e(setting('org_name', ORG_NAME)) ?>" width="40" height="40">
+      </div>
       <div>
         <div class="rail__name">Elimu Yetu Development Organization</div>
-        <div class="rail__motto">Ninaweza, nitafanya </div>
+        <div class="rail__motto">Ninaweza, nitafanya, najiamini</div>
       </div>
     </div>
 
