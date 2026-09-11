@@ -331,7 +331,11 @@ function my_course_ids(): array
     }
     if ($r === 'student') {
         $s = my_student();
-        return $s ? array_column(rows('SELECT course_id FROM enrolments WHERE student_id = ?', [$s['id']]), 'course_id') : [];
+        if (!$s) return [];
+        return array_values(array_unique(array_column(
+            rows('SELECT DISTINCT course_id FROM enrolments WHERE student_id = ? AND status = ?', [$s['id'], 'active']),
+            'course_id'
+        )));
     }
     return [];
 }

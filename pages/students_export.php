@@ -14,13 +14,27 @@ if ($search !== '') {
     $like = '%' . $search . '%'; array_push($args, $like, $like, $like, $like, $like, $like, $like);
 }
 if ($status !== '') { $where .= ' AND s.status = ? '; $args[] = $status; }
-if ($dept)         { $where .= ' AND s.department_id = ? '; $args[] = $dept; }
+if ($dept) {
+    $where .= ' AND s.id IN (
+        SELECT DISTINCT e.student_id
+        FROM enrolments e
+        JOIN courses c ON c.id = e.course_id
+        WHERE c.department_id = ? AND e.status = "active"
+    ) ';
+    $args[] = $dept;
+}
 if ($course)       { $where .= ' AND s.id IN (SELECT student_id FROM enrolments WHERE course_id = ?) '; $args[] = $course; }
 
 $list = rows("SELECT s.student_no, s.first_name, s.middle_name, s.last_name, s.gender, s.dob, s.phone,
                      s.email, s.national_id, s.address, s.education_level, s.guardian_name, s.guardian_phone,
-                     s.guardian_relation, d.name AS department, s.status, s.registered_at
-              FROM students s LEFT JOIN departments d ON d.id = s.department_id
+                     s.guardian_relation,
+                     COALESCE((SELECT GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ')
+                               FROM enrolments e
+                               JOIN courses c ON c.id = e.course_id
+                               JOIN departments d ON d.id = c.department_id
+                               WHERE e.student_id = s.id AND e.status = 'active'), 'No departments') AS departments_enrolled_in,
+                     s.status, s.registered_at
+              FROM students s
               $where ORDER BY s.student_no", $args);
 
 audit('export', 'students', '', count($list) . ' rows');
@@ -32,6 +46,6 @@ $out = fopen('php://output', 'w');
 fwrite($out, "\xEF\xBB\xBF");   // BOM so Excel reads UTF-8 names correctly
 fputcsv($out, ['Student No', 'First name', 'Middle name', 'Last name', 'Gender', 'Date of birth', 'Phone',
                'Email', 'National ID', 'Address', 'Education level', 'Guardian', 'Guardian phone',
-               'Relationship', 'Department', 'Status', 'Registered at']);
+               'Relationship', 'Departments enrolled in', 'Status', 'Registered at']);
 foreach ($list as $r) fputcsv($out, array_values($r));
 fclose($out);

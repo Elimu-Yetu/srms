@@ -3,8 +3,9 @@
 require_once BASE_PATH . '/views/icons.php';
 
 $id = getInt('id');
-$s  = row('SELECT s.*, d.name AS dept, u.name AS officer FROM students s
-           LEFT JOIN departments d ON d.id = s.department_id
+$s  = row('SELECT s.*,
+                 u.name AS officer
+           FROM students s
            LEFT JOIN users u ON u.id = s.registered_by WHERE s.id = ?', [$id]);
 if (!$s) { flash('error', 'That student file was not found.'); redirect('students.index'); }
 if (is_role('manager') && (int) $s['department_id'] !== my_department()) deny();
@@ -49,7 +50,6 @@ $st          = settings();
         <div class="pair"><span class="pair__k">Email</span><span class="pair__v"><?= e($s['email'] ?: '—') ?></span></div>
         <div class="pair"><span class="pair__k">National ID</span><span class="pair__v"><?= e($s['national_id'] ?: '—') ?></span></div>
         <div class="pair pair--wide"><span class="pair__k">Address</span><span class="pair__v"><?= e($s['address'] ?: '—') ?></span></div>
-        <div class="pair"><span class="pair__k">Department</span><span class="pair__v"><?= e($s['dept'] ?? '—') ?></span></div>
         <div class="pair"><span class="pair__k">Status</span><span class="pair__v"><?= e(ucfirst($s['status'])) ?></span></div>
       </div>
     </div>

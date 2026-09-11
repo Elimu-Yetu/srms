@@ -3,10 +3,48 @@
 require_once BASE_PATH . '/views/icons.php';
 
 $id = getInt('id');
-$s  = row('SELECT s.*, d.name AS dept, u.name AS registered_by_name
-           FROM students s LEFT JOIN departments d ON d.id = s.department_id
+$s  = row('SELECT s.*, 
+                 u.name AS registered_by_name
+           FROM students s
            LEFT JOIN users u ON u.id = s.registered_by WHERE s.id = ?', [$id]);
 if (!$s) { flash('error', 'That student file was not found.'); redirect('students.index'); }
+
+// Handle creating student portal directly
+if (is_post() && post('do') === 'create_portal') {
+  csrf_check();
+  if (!can('users.manage')) {
+    flash('error', 'You do not have permission to create accounts.');
+    redirect('students.view', ['id' => $id]);
+  }
+  
+  // Generate email if not set
+  $email = $s['email'] ?: strtolower(str_replace(['-', ' '], '', $s['student_no'])) . '@student.elimuyetu.org';
+  $email = strtolower(trim($email));
+  
+  // Check if account already exists
+  if (val('SELECT 1 FROM users WHERE email = ?', [$email])) {
+    flash('error', 'Portal account already exists for this student.');
+    redirect('students.view', ['id' => $id]);
+  }
+  
+  // Create the account without password (students log in with registration number only)
+  $full_name = trim($s['first_name'] . ' ' . ($s['middle_name'] ? $s['middle_name'] . ' ' : '') . $s['last_name']);
+  $user_data = [
+    'name' => $full_name,
+    'email' => $email,
+    'phone' => $s['phone'] ?? '',
+    'role' => 'student',
+    'student_id' => $id,
+    'status' => 'active',
+    'password_hash' => password_hash('', PASSWORD_DEFAULT),
+    'created_at' => now(),
+  ];
+  
+  $user_id = insert('users', $user_data);
+  audit('create', 'users', $user_id, $email . ' · student');
+  flash('ok', 'Student portal created. Email: <strong>' . e($email) . '</strong>. Student logs in using registration number only.');
+  redirect('students.view', ['id' => $id]);
+}
 
 // Handle deletion (allow either students.manage or admin role)
 if (is_post() && post('do') === 'delete') {
@@ -16,19 +54,15 @@ if (is_post() && post('do') === 'delete') {
     redirect('students.view', ['id' => $id]);
   }
   $enrols = (int) val('SELECT COUNT(*) FROM enrolments WHERE student_id = ?', [$id], 0);
-  $certs  = (int) val('SELECT COUNT(*) FROM certificates WHERE student_id = ?', [$id], 0);
   if ($enrols > 0) {
     flash('error', 'Cannot delete a student with active enrolments. Unenrol the student first.');
-    redirect('students.view', ['id' => $id]);
-  }
-  if ($certs > 0) {
-    flash('error', 'That student has certificates issued. Remove certificates before deleting the student.');
     redirect('students.view', ['id' => $id]);
   }
   // safe to delete
   if (!empty($s['photo'])) {
     delete_student_photo($s['photo']);
   }
+  q('DELETE FROM certificates WHERE student_id = ?', [$id]);
   q('DELETE FROM users WHERE student_id = ?', [$id]);
   q('DELETE FROM id_cards WHERE student_id = ?', [$id]);
   q('DELETE FROM students WHERE id = ?', [$id]);
@@ -45,8 +79,7 @@ if (is_role('facilitator')) {
 
 $full = trim($s['first_name'] . ' ' . ($s['middle_name'] ? $s['middle_name'] . ' ' : '') . $s['last_name']);
 $page_title = $full;
-$page_sub   = '<span class="mono">' . e($s['student_no']) . '</span> · ' . e($s['dept'] ?? 'No department')
-            . ' · ' . badge(ucfirst($s['status']), status_tone($s['status']));
+$page_sub   = '<span class="mono">' . e($s['student_no']) . '</span> · ' . badge(ucfirst($s['status']), status_tone($s['status']));
 
 $page_actions = '';
 if (can('students.manage')) {
@@ -104,8 +137,8 @@ if ($openCourses) {
 $threshold = (int) setting('attendance_threshold', '80');
 ?>
 
-<div class="grid grid--sidebar">
-  <div class="stack">
+<div class="grid grid--sidebar student-profile">
+  <div class="stack student-profile__stack">
 
     <div class="panel">
       <div class="panel__head"><h2>Registration details</h2>
@@ -125,7 +158,6 @@ $threshold = (int) setting('attendance_threshold', '80');
             <dt>Email</dt><dd><?= e($s['email'] ?: '—') ?></dd>
             <dt>National ID</dt><dd class="mono"><?= e($s['national_id'] ?: '—') ?></dd>
             <dt>Address</dt><dd><?= e($s['address'] ?: '—') ?></dd>
-            <dt>Department</dt><dd><?= e($s['dept'] ?? '—') ?></dd>
           </dl>
         </div>
         <div class="section-head"><span></span><h3>Guardian / emergency contact</h3></div>
@@ -149,6 +181,13 @@ $threshold = (int) setting('attendance_threshold', '80');
           <p>Enrolment links this student to a class, its attendance register and its timetable.</p>
         </div>
       <?php else: ?>
+        <div class="panel__body" style="padding-top:0;padding-bottom:12px">
+          <div class="selected-course-list selected-course-list--compact">
+            <?php foreach ($enrols as $en): ?>
+              <span class="course-pill"><span class="mono"><?= e($en['code']) ?></span><?= e($en['course']) ?></span>
+            <?php endforeach; ?>
+          </div>
+        </div>
         <div class="tablewrap">
           <table class="data">
             <thead><tr><th>Course</th><th>Facilitator</th><th>Enrolled</th><th>Status</th><?php if (can('students.enrol')): ?><th></th><?php endif; ?></tr></thead>
@@ -250,7 +289,7 @@ $threshold = (int) setting('attendance_threshold', '80');
     <?php endif; ?>
   </div>
 
-  <div class="stack">
+  <div class="stack student-profile__stack">
     <div class="panel">
       <div class="panel__body center">
         <?php if ($s['photo']): ?>
@@ -323,7 +362,11 @@ $threshold = (int) setting('attendance_threshold', '80');
         <?php else: ?>
           <p class="tiny muted">No portal account yet. A student needs one to see their courses, timetable and results.</p>
           <?php if (can('users.manage')): ?>
-            <a class="btn btn--sm" href="<?= e(url('users.form', ['student_id' => $id, 'role' => 'student'])) ?>"><?= icon('plus', 15) ?> Create login</a>
+            <form method="post" style="margin-top:10px">
+              <?= csrf_field() ?>
+              <input type="hidden" name="do" value="create_portal">
+              <button class="btn btn--sm btn--primary" type="submit"><?= icon('plus', 15) ?> Create portal now</button>
+            </form>
           <?php endif; ?>
         <?php endif; ?>
       </div>

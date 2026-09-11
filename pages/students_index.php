@@ -13,18 +13,14 @@ if (is_post() && (can('students.manage') || is_role('admin'))) {
       redirect('students.index');
     }
     $enrols = (int) val('SELECT COUNT(*) FROM enrolments WHERE student_id = ?', [$sid], 0);
-    $certs  = (int) val('SELECT COUNT(*) FROM certificates WHERE student_id = ?', [$sid], 0);
     if ($enrols > 0) {
       flash('error', 'Cannot delete a student with active enrolments. Unenrol the student first.');
-      redirect('students.index');
-    }
-    if ($certs > 0) {
-      flash('error', 'That student has certificates issued. Remove certificates before deleting the student.');
       redirect('students.index');
     }
     if (!empty($srec['photo'])) {
       delete_student_photo($srec['photo']);
     }
+    q('DELETE FROM certificates WHERE student_id = ?', [$sid]);
     q('DELETE FROM users WHERE student_id = ?', [$sid]);
     q('DELETE FROM id_cards WHERE student_id = ?', [$sid]);
     q('DELETE FROM students WHERE id = ?', [$sid]);
@@ -48,9 +44,26 @@ if (is_role('facilitator')) {
     $ids = my_course_ids();
     $where .= ' AND s.id IN (SELECT student_id FROM enrolments WHERE course_id IN (' . in_list($ids) . ')) ';
 } else {
-    [$scope, $scopeArgs] = dept_scope('s.department_id');
-    $where .= $scope;
-    $args = array_merge($args, $scopeArgs);
+    if (is_role('manager')) {
+        $where .= ' AND s.id IN (
+            SELECT DISTINCT e.student_id
+            FROM enrolments e
+            JOIN courses c ON c.id = e.course_id
+            WHERE c.department_id = ? AND e.status = "active"
+        ) ';
+        $args[] = my_department();
+    }
+    if (is_admin()) {
+        if ($dept) {
+            $where .= ' AND s.id IN (
+                SELECT DISTINCT e.student_id
+                FROM enrolments e
+                JOIN courses c ON c.id = e.course_id
+                WHERE c.department_id = ? AND e.status = "active"
+            ) ';
+            $args[] = $dept;
+        }
+    }
 }
 
 if ($search !== '') {
@@ -59,13 +72,17 @@ if ($search !== '') {
     array_push($args, $like, $like, $like, $like, $like, $like, $like);
 }
 if ($status !== '') { $where .= ' AND s.status = ? '; $args[] = $status; }
-if ($dept)         { $where .= ' AND s.department_id = ? '; $args[] = $dept; }
 if ($course)       { $where .= ' AND s.id IN (SELECT student_id FROM enrolments WHERE course_id = ?) '; $args[] = $course; }
 
 $total = (int) val("SELECT COUNT(*) FROM students s $where", $args, 0);
-$list  = rows("SELECT s.*, d.name AS dept,
+$list  = rows("SELECT s.*,
+                 COALESCE((SELECT GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ')
+                           FROM enrolments e
+                           JOIN courses c ON c.id = e.course_id
+                           JOIN departments d ON d.id = c.department_id
+                           WHERE e.student_id = s.id AND e.status = 'active'), '—') AS dept,
                  (SELECT COUNT(*) FROM enrolments e WHERE e.student_id = s.id AND e.status = 'active') AS courses
-               FROM students s LEFT JOIN departments d ON d.id = s.department_id
+               FROM students s
                $where ORDER BY s.registered_at DESC, s.id DESC LIMIT $limit OFFSET $offset", $args);
 
 $depts   = rows('SELECT id, name FROM departments ORDER BY name');
@@ -138,7 +155,7 @@ $qs = ['q' => $search, 'status' => $status, 'dept' => $dept, 'course' => $course
       <table class="data">
         <thead>
           <tr>
-            <th>Student</th><th>Department</th><th>Courses</th><th>Phone</th>
+            <th>Student</th><th>Departments enrolled in</th><th>Courses</th><th>Phone</th>
             <th>Status</th><th>Registered</th><th></th>
           </tr>
         </thead>

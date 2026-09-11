@@ -138,7 +138,7 @@ Listed honestly, so nobody expects them:
 - **No CSV import** of students. Export works; import is riskier and needs a preview step.
 - **No SMS or email.** No Beem Africa or Africa's Talking integration. Notices are on-screen only.
 
-- **No automatic backups.** Backup is one button, pressed by a person.
+- **No webcam to take pictures directly 
 
 ---
 

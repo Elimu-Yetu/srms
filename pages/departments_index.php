@@ -9,7 +9,10 @@ if (is_post() && can('departments.manage')) {
     $d = row('SELECT * FROM departments WHERE id = ?', [$did]);
     if ($d) {
       $courses = (int) val('SELECT COUNT(*) FROM courses WHERE department_id = ?', [$did], 0);
-      $students = (int) val('SELECT COUNT(*) FROM students WHERE department_id = ?', [$did], 0);
+      $students = (int) val("SELECT COUNT(DISTINCT e.student_id)
+                            FROM enrolments e
+                            JOIN courses c ON c.id = e.course_id
+                            WHERE c.department_id = ? AND e.status = 'active'", [$did], 0);
       $users = (int) val('SELECT COUNT(*) FROM users WHERE department_id = ?', [$did], 0);
       if ($courses || $students || $users) {
         flash('error', 'Cannot delete department while it has ' . ($courses ? $courses . ' course(s) ' : '') . ($students ? $students . ' student(s) ' : '') . ($users ? $users . ' account(s)' : ''));
@@ -26,7 +29,10 @@ if (is_post() && can('departments.manage')) {
 [$scope, $args] = dept_scope('d.id');
 $list = rows("SELECT d.*, u.name AS manager,
                 (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.id AND c.status = 'active') AS courses,
-                (SELECT COUNT(*) FROM students s WHERE s.department_id = d.id AND s.status = 'active') AS students
+                (SELECT COUNT(DISTINCT e.student_id)
+                 FROM enrolments e
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE c.department_id = d.id AND e.status = 'active') AS students
               FROM departments d LEFT JOIN users u ON u.id = d.manager_id
               WHERE 1=1 $scope ORDER BY d.name", $args);
 

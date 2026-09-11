@@ -17,9 +17,11 @@ require_once BASE_PATH . '/views/icons.php';
 <div class="authcard">
   <div class="ribbon" style="border-radius:0"></div>
   <div class="authcard__body">
-    <div class="authcard__mark">EY</div>
     <div class="eyebrow">Student Portal</div>
-    <h1 style="margin:2px 0 3px"><?= e(setting('org_name', ORG_NAME)) ?></h1>
+    <div style="position:relative;margin-bottom:8px">
+      <img src="assets/img/image.png" alt="Watermark" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);height:120px;width:auto;opacity:0.35;pointer-events:none;z-index:0">
+      <h1 style="margin:2px 0 3px;position:relative;z-index:1"><?= e(setting('org_name', ORG_NAME)) ?></h1>
+    </div>
     <p class="muted tiny" style="font-style:italic"><?= e(setting('org_motto', ORG_MOTTO)) ?></p>
 
     <?php if ($error): ?>

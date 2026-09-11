@@ -404,6 +404,34 @@ function sanitize_html(string $html): string
 }
 
 /**
+ * Check if two courses clash in the timetable.
+ */
+function course_timetable_clash(int $courseAId, int $courseBId): ?array
+{
+    return row(
+        "SELECT t_a.day_of_week,
+                t_a.start_time AS first_start,
+                t_a.end_time   AS first_end,
+                c_a.name       AS first_course,
+                c_a.code       AS first_code,
+                t_b.start_time AS second_start,
+                t_b.end_time   AS second_end,
+                c_b.name       AS second_course,
+                c_b.code       AS second_code
+         FROM timetable t_a
+         JOIN courses c_a ON c_a.id = t_a.course_id
+         JOIN timetable t_b ON t_b.day_of_week = t_a.day_of_week
+                           AND t_b.course_id = ?
+                           AND t_b.start_time < t_a.end_time
+                           AND t_b.end_time   > t_a.start_time
+         JOIN courses c_b ON c_b.id = t_b.course_id
+         WHERE t_a.course_id = ?
+         LIMIT 1",
+        [$courseBId, $courseAId]
+    );
+}
+
+/**
  * Check if enrolling a student into a course causes any timetable clash
  * with any of the student's currently active enrolled courses.
  *

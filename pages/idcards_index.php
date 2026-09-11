@@ -11,7 +11,7 @@ $args  = [];
 $where .= $scope; $args = array_merge($args, $scopeArgs);
 if ($courseId) { $where .= ' AND s.id IN (SELECT student_id FROM enrolments WHERE course_id = ?) '; $args[] = $courseId; }
 
-$list = rows("SELECT s.*, d.name AS dept, ic.card_no, ic.valid_until, ic.issued_on
+$list = rows("SELECT s.*, d.name AS dept, ic.id AS card_id, ic.card_no, ic.valid_until, ic.issued_on
               FROM students s
               LEFT JOIN departments d ON d.id = s.department_id
               LEFT JOIN id_cards ic ON ic.id = (SELECT MAX(id) FROM id_cards WHERE student_id = s.id)
@@ -64,10 +64,17 @@ $page_actions = $courseId
             <td class="tiny"><?= e($s['dept'] ?? '—') ?></td>
             <td class="tiny mono"><?= $s['card_no'] ? e($s['card_no']) : '<span class="muted">Not issued</span>' ?></td>
             <td class="tiny mono"><?= $s['valid_until'] ? e(d($s['valid_until'])) : '—' ?></td>
-            <td class="right">
+            <td class="right nowrap">
               <a class="btn btn--sm" target="_blank" href="<?= e(url('idcards.print', ['student_id' => $s['id']])) ?>">
                 <?= icon('printer', 15) ?> <?= $s['card_no'] ? 'Reprint' : 'Issue' ?>
               </a>
+              <?php if ($s['card_id']): ?>
+                <form method="post" action="<?= e(url('idcards.act')) ?>" style="display:inline;margin-left:6px">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="id_card_id" value="<?= (int) $s['card_id'] ?>">
+                  <button class="btn btn--sm btn--danger" data-confirm="Unissue this ID card? This will remove the current card record."><?= icon('x', 12) ?> Unissue</button>
+                </form>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>

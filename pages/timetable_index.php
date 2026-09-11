@@ -139,7 +139,7 @@ foreach ($mergedSlots as $day => $arr) {
   }
 }
 $page_sub = $deptName
-  ? 'Weekly timetable for ' . e($deptName) . '. Each department has its own independent timetable.'
+  ? 'Weekly timetable for ' . e($deptName) . '..'
   : 'Slots repeat every week. Clashes on course or facilitator are blocked when you save.';
 ?>
 <?php foreach ($errors as $er): ?>
@@ -203,11 +203,11 @@ $page_sub = $deptName
       </div>
       <div class="field">
         <label for="start_time">From</label>
-        <input id="start_time" name="start_time" type="time" value="09:00" required>
+        <input id="start_time" name="start_time" type="time" value="08:30" required>
       </div>
       <div class="field">
         <label for="end_time">To</label>
-        <input id="end_time" name="end_time" type="time" value="11:00" required>
+        <input id="end_time" name="end_time" type="time" value="10:30" required>
       </div>
       <div class="field span2">
         <label for="facilitator_id">Facilitator for this slot</label>

@@ -12,11 +12,41 @@ $page_sub  = 'Signed in as ' . e(ROLES[$r]) . ' · ' . e(d(date('Y-m-d'), 'l, d 
 $courseFilter = $mine ? ' AND e.course_id IN (' . in_list($mine) . ') ' : ' AND 1=0 ';
 
 if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
-    [$dScope, $dArgs] = dept_scope('s.department_id');
-    $totStudents = (int) val("SELECT COUNT(*) FROM students s WHERE s.status = 'active' $dScope", $dArgs, 0);
-    $totPending  = (int) val("SELECT COUNT(*) FROM students s WHERE s.status = 'pending' $dScope", $dArgs, 0);
-    $newThisMonth = (int) val("SELECT COUNT(*) FROM students s WHERE s.registered_at >= ? $dScope",
-        array_merge([date('Y-m-01 00:00:00')], $dArgs), 0);
+    if (is_role('manager')) {
+        $deptId = my_department();
+        $totStudents = (int) val("SELECT COUNT(DISTINCT e.student_id)
+                                 FROM enrolments e
+                                 JOIN courses c ON c.id = e.course_id
+                                 WHERE e.status = 'active' AND c.department_id = ?", [$deptId], 0);
+        $totPending  = (int) val("SELECT COUNT(DISTINCT e.student_id)
+                                 FROM enrolments e
+                                 JOIN courses c ON c.id = e.course_id
+                                 JOIN students s ON s.id = e.student_id
+                                 WHERE e.status = 'active' AND c.department_id = ? AND s.status = 'pending'", [$deptId], 0);
+        $newThisMonth = (int) val("SELECT COUNT(DISTINCT e.student_id)
+                                 FROM enrolments e
+                                 JOIN courses c ON c.id = e.course_id
+                                 JOIN students s ON s.id = e.student_id
+                                 WHERE e.status = 'active' AND c.department_id = ? AND s.registered_at >= ?",
+            [$deptId, date('Y-m-01 00:00:00')], 0);
+    } else {
+        // Admin/superadmin counts are derived from active course enrolments so one student can count across multiple departments.
+        $totStudents = (int) val("SELECT COUNT(DISTINCT e.student_id)
+                                 FROM enrolments e
+                                 JOIN courses c ON c.id = e.course_id
+                                 WHERE e.status = 'active' AND c.department_id IN (SELECT id FROM departments)", [], 0);
+        $totPending  = (int) val("SELECT COUNT(DISTINCT e.student_id)
+                                 FROM enrolments e
+                                 JOIN courses c ON c.id = e.course_id
+                                 JOIN students s ON s.id = e.student_id
+                                 WHERE e.status = 'active' AND c.department_id IN (SELECT id FROM departments) AND s.status = 'pending'", [], 0);
+        $newThisMonth = (int) val("SELECT COUNT(DISTINCT e.student_id)
+                                 FROM enrolments e
+                                 JOIN courses c ON c.id = e.course_id
+                                 JOIN students s ON s.id = e.student_id
+                                 WHERE e.status = 'active' AND c.department_id IN (SELECT id FROM departments) AND s.registered_at >= ?",
+            [date('Y-m-01 00:00:00')], 0);
+    }
     $totCourses  = count($mine);
     $totStaff    = (int) val('SELECT COUNT(*) FROM users u WHERE u.status = ? AND u.role <> ? ' . hide_superadmin('u'),
         ['active', 'student'], 0);
@@ -88,10 +118,32 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
       <?php endif; ?>
 
       <?php
-      $recent = rows("SELECT s.*, d.name AS dept FROM students s
-                      LEFT JOIN departments d ON d.id = s.department_id
-                      WHERE 1=1 " . dept_scope('s.department_id')[0] . "
-                      ORDER BY s.registered_at DESC LIMIT 8", dept_scope('s.department_id')[1]);
+      if (is_role('manager')) {
+          $recent = rows("SELECT s.*,
+                          COALESCE((SELECT GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ')
+                                    FROM enrolments e
+                                    JOIN courses c ON c.id = e.course_id
+                                    JOIN departments d ON d.id = c.department_id
+                                    WHERE e.student_id = s.id AND e.status = 'active' AND c.department_id = ?), '—') AS dept
+                          FROM students s
+                          WHERE s.id IN (
+                              SELECT DISTINCT e.student_id
+                              FROM enrolments e
+                              JOIN courses c ON c.id = e.course_id
+                              WHERE c.department_id = ? AND e.status = 'active'
+                          )
+                          ORDER BY s.registered_at DESC LIMIT 8", [my_department(), my_department()]);
+      } else {
+          $recent = rows("SELECT s.*,
+                          COALESCE((SELECT GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ')
+                                    FROM enrolments e
+                                    JOIN courses c ON c.id = e.course_id
+                                    JOIN departments d ON d.id = c.department_id
+                                    WHERE e.student_id = s.id AND e.status = 'active'), '—') AS dept
+                          FROM students s
+                          WHERE 1=1 " . (is_role('admin') ? '' : dept_scope('s.department_id')[0]) . "
+                          ORDER BY s.registered_at DESC LIMIT 8", $dArgs ?? []);
+      }
       ?>
       <div class="panel">
         <div class="panel__head">
@@ -108,7 +160,7 @@ if (in_array($r, ['superadmin', 'admin', 'manager'], true)) {
         <?php else: ?>
           <div class="tablewrap">
             <table class="data">
-              <thead><tr><th>Student</th><th>Department</th><th>Status</th><th class="right">Registered</th></tr></thead>
+              <thead><tr><th>Student</th><th>Departments enrolled in</th><th>Status</th><th class="right">Registered</th></tr></thead>
               <tbody>
               <?php foreach ($recent as $s): ?>
                 <tr>

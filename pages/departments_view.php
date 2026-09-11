@@ -18,7 +18,10 @@ $courses = rows("SELECT c.*, u.name AS facilitator,
                  FROM courses c LEFT JOIN users u ON u.id = c.facilitator_id
                  WHERE c.department_id = ? ORDER BY c.status, c.name", [$id]);
 $staff = rows("SELECT u.* FROM users u WHERE u.department_id = ? AND u.role <> 'student'" . hide_superadmin('u') . ' ORDER BY u.role, u.name', [$id]);
-$students = (int) val("SELECT COUNT(*) FROM students WHERE department_id = ? AND status = 'active'", [$id], 0);
+$students = (int) val("SELECT COUNT(DISTINCT e.student_id)
+                      FROM enrolments e
+                      JOIN courses c ON c.id = e.course_id
+                      WHERE c.department_id = ? AND e.status = 'active'", [$id], 0);
 ?>
 <div class="grid grid--4">
   <div class="stat"><div class="stat__label">Active students</div><div class="stat__value"><?= $students ?></div></div>

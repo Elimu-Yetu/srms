@@ -24,13 +24,23 @@ if (is_post() && can('courses.manage')) {
 $isStudent = is_role('student');
 $me = $isStudent ? my_student() : null;
 $mine = my_course_ids();
+$search = getStr('q');
+
+$where = ' WHERE c.id IN (' . in_list($mine) . ') ';
+$args = [];
+
+if ($search !== '') {
+    $where .= ' AND (c.name LIKE ? OR c.code LIKE ? OR c.description LIKE ?) ';
+    $like = '%' . $search . '%';
+    array_push($args, $like, $like, $like);
+}
 
 $list = rows("SELECT c.*, d.name AS dept, u.name AS facilitator,
                 (SELECT COUNT(*) FROM enrolments e WHERE e.course_id = c.id AND e.status = 'active') AS enrolled
               FROM courses c
               LEFT JOIN departments d ON d.id = c.department_id
               LEFT JOIN users u ON u.id = c.facilitator_id
-              WHERE c.id IN (" . in_list($mine) . ") ORDER BY c.status, c.name");
+              $where ORDER BY c.status, c.name", $args);
 
 $page_title = $isStudent ? 'My courses' : 'Courses';
 $page_sub   = count($list) . ' course' . (count($list) === 1 ? '' : 's') . ($isStudent ? ' you are enrolled in' : ' in your scope');
@@ -39,15 +49,39 @@ if (can('courses.manage')) {
 }
 ?>
 <?php if (!$list): ?>
-  <div class="panel"><div class="empty">
-    <div class="empty__mark"><?= icon('book', 22) ?></div>
-    <h3><?= $isStudent ? 'You are not enrolled in a course yet' : 'No courses yet' ?></h3>
-    <p><?= $isStudent ? 'Once the office enrols you, your course, timetable and attendance appear here.'
-                      : 'A course belongs to a department, has a facilitator, a capacity and a timetable.' ?></p>
-    <?php if (can('courses.manage')): ?><a class="btn btn--primary" href="<?= e(url('courses.form')) ?>">Create a course</a><?php endif; ?>
-  </div></div>
+  <div class="panel">
+    <form class="toolbar" method="get">
+      <input type="hidden" name="r" value="courses.index">
+      <div class="field grow">
+        <label for="q">Search by name or code</label>
+        <input id="q" type="search" name="q" value="<?= e($search) ?>" placeholder="e.g. Mathematics, CS-101">
+      </div>
+      <button class="btn" type="submit"><?= icon('search', 16) ?> Search</button>
+      <?php if ($search): ?>
+        <a class="btn btn--ghost" href="<?= e(url('courses.index')) ?>">Clear</a>
+      <?php endif; ?>
+    </form>
+    <div class="empty">
+      <div class="empty__mark"><?= icon('book', 22) ?></div>
+      <h3><?= $isStudent ? 'You are not enrolled in a course yet' : 'No courses yet' ?></h3>
+      <p><?= $isStudent ? 'Once the office enrols you, your course, timetable and attendance appear here.'
+                        : 'A course belongs to a department, has a facilitator, a capacity and a timetable.' ?></p>
+      <?php if (can('courses.manage')): ?><a class="btn btn--primary" href="<?= e(url('courses.form')) ?>">Create a course</a><?php endif; ?>
+    </div>
+  </div>
 <?php else: ?>
   <div class="panel">
+    <form class="toolbar" method="get">
+      <input type="hidden" name="r" value="courses.index">
+      <div class="field grow">
+        <label for="q">Search by name or code</label>
+        <input id="q" type="search" name="q" value="<?= e($search) ?>" placeholder="e.g. Mathematics, CS-101">
+      </div>
+      <button class="btn" type="submit"><?= icon('search', 16) ?> Search</button>
+      <?php if ($search): ?>
+        <a class="btn btn--ghost" href="<?= e(url('courses.index')) ?>">Clear</a>
+      <?php endif; ?>
+    </form>
     <div class="tablewrap">
       <table class="data">
         <thead><tr><th>Course</th><th>Department</th><th>Facilitator</th><th class="right">Enrolled</th><th>Status</th><th></th></tr></thead>

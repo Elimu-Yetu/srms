@@ -16,29 +16,37 @@ $page_sub   = $isEdit ? e($rec['student_no']) . ' · ' . e($rec['first_name'] . 
                       : 'The next number will be <span class="mono">' . e(next_student_no($selectedIntake)) . '</span>';
 
 $depts   = rows('SELECT id, name FROM departments WHERE status = ? ORDER BY name', ['active']);
-$courses = rows('SELECT c.id, c.code, c.name, c.department_id, c.capacity,
+$courses = rows('SELECT c.id, c.code, c.name, c.department_id, d.name AS dept_name, c.capacity,
                         (SELECT COUNT(*) FROM enrolments e WHERE e.course_id = c.id AND e.status = \'active\') AS taken
-                 FROM courses c WHERE c.status = ? ORDER BY c.name', ['active']);
+                 FROM courses c
+                 LEFT JOIN departments d ON d.id = c.department_id
+                 WHERE c.status = ? ORDER BY d.name, c.name', ['active']);
+$courseGroups = [];
+foreach ($courses as $c) {
+    $deptName = $c['dept_name'] ?: 'Unassigned';
+    $courseGroups[$deptName][] = $c;
+}
 
 $errors = [];
 $f = $rec ?: [
     'first_name' => '', 'middle_name' => '', 'last_name' => '', 'gender' => '', 'dob' => '',
     'phone' => '', 'email' => '', 'national_id' => '', 'address' => '', 'education_level' => '',
     'guardian_name' => '', 'guardian_phone' => '', 'guardian_relation' => '',
-    'department_id' => (is_admin() ? '' : my_department()), 'status' => 'pending', 'notes' => '', 'photo' => null,
+    'department_id' => null, 'status' => 'pending', 'notes' => '', 'photo' => null,
 ];
+$selectedCourseIds = [];
 
 if (is_post()) {
     csrf_check();
     foreach (array_keys($f) as $k) {
         if ($k !== 'photo') $f[$k] = post($k);
     }
+    $selectedCourseIds = array_values(array_unique(array_filter(array_map('intval', (array) post('course_ids')), static fn($id) => $id > 0)));
 
     $f['email'] = strtolower(trim($f['email']));
 
     if ($f['first_name'] === '') $errors[] = 'First name is required.';
     if ($f['last_name'] === '')  $errors[] = 'Last name is required.';
-    if (!$f['department_id'])     $errors[] = 'Choose a department.';
     if ($f['email'] !== '' && !filter_var($f['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'That email address is not valid.';
     if ($f['dob'] !== '' && strtotime($f['dob']) > time()) $errors[] = 'Date of birth cannot be in the future.';
 
@@ -66,13 +74,37 @@ if (is_post()) {
     $newPhoto = save_photo('photo', $photoErr);
     if ($photoErr) $errors[] = $photoErr;
 
+    if (!$errors && $selectedCourseIds) {
+        foreach ($selectedCourseIds as $courseId) {
+            $course = row('SELECT * FROM courses WHERE id = ? AND status = ?', [$courseId, 'active']);
+            if (!$course) {
+                $errors[] = 'One or more selected courses are no longer available.';
+                continue;
+            }
+            $taken = (int) val('SELECT COUNT(*) FROM enrolments WHERE course_id = ? AND status = ?', [$courseId, 'active'], 0);
+            if ($taken >= (int) $course['capacity']) {
+                $errors[] = 'Course ' . e($course['code']) . ' is full. Choose a different course.';
+                continue;
+            }
+            foreach (array_diff($selectedCourseIds, [$courseId]) as $otherCourseId) {
+                $clash = course_timetable_clash((int) $courseId, (int) $otherCourseId);
+                if ($clash) {
+                    $day = day_name((int) $clash['day_of_week']);
+                    $errors[] = 'Course ' . e($course['code']) . ' clashes with ' . e($clash['second_code']) . ' on ' . e($day)
+                        . ' (' . e($clash['first_start']) . '–' . e($clash['first_end']) . ').';
+                    break;
+                }
+            }
+        }
+    }
+
     if (!$errors) {
         $data = [
             'first_name' => $f['first_name'], 'middle_name' => $f['middle_name'], 'last_name' => $f['last_name'],
             'gender' => $f['gender'], 'dob' => $f['dob'] ?: null, 'phone' => $f['phone'], 'email' => $f['email'],
             'national_id' => $f['national_id'], 'address' => $f['address'], 'education_level' => $f['education_level'],
             'guardian_name' => $f['guardian_name'], 'guardian_phone' => $f['guardian_phone'],
-            'guardian_relation' => $f['guardian_relation'], 'department_id' => (int) $f['department_id'],
+            'guardian_relation' => $f['guardian_relation'], 'department_id' => !empty($f['department_id']) ? (int) $f['department_id'] : null,
             'status' => $f['status'], 'notes' => $f['notes'],
         ];
         if ($newPhoto) $data['photo'] = $newPhoto;
@@ -93,16 +125,14 @@ if (is_post()) {
             $newId = insert('students', $data);
             audit('create', 'students', $newId, $data['student_no']);
 
-            $courseId = postInt('course_id');
-            if ($courseId) {
+            foreach ($selectedCourseIds as $courseId) {
                 $c = row('SELECT * FROM courses WHERE id = ?', [$courseId]);
-                if ($c) {
-                    insert('enrolments', [
-                        'student_id' => $newId, 'course_id' => $courseId,
-                        'enrolled_on' => date('Y-m-d'), 'status' => 'active', 'created_at' => now(),
-                    ]);
-                    audit('enrol', 'enrolments', $newId, $c['code']);
-                }
+                if (!$c) { continue; }
+                insert('enrolments', [
+                    'student_id' => $newId, 'course_id' => $courseId,
+                    'enrolled_on' => date('Y-m-d'), 'status' => 'active', 'created_at' => now(),
+                ]);
+                audit('enrol', 'enrolments', $newId, $c['code']);
             }
             flash('ok', 'Registered <strong>' . e($data['first_name'] . ' ' . $data['last_name'])
                 . '</strong> as <span class="mono">' . e($data['student_no']) . '</span>.');
@@ -199,64 +229,25 @@ if (is_post()) {
           <label for="notes">Office notes</label>
           <textarea id="notes" name="notes" rows="3" placeholder="Anything the office should know — referral, special needs, background."><?= e($f['notes']) ?></textarea>
         </div>
-        </div>
-      </div>
 
-    <div class="panel">
-      <div class="panel__head"><h2>Photo</h2></div>
-      <div class="panel__body">
+        <div class="section-head"><span></span><h3>Photo</h3></div>
+        <div class="field" style="margin-bottom:0">
           <?php if (!empty($f['photo'])): ?>
             <img class="photo-preview-large" src="<?= e(photo_url($f['photo'])) ?>" alt="">
           <?php endif; ?>
-        <div class="field" style="margin:0">
           <label for="photo">Passport photo</label>
           <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
           <div class="hint">JPG, PNG or WEBP, up to 3 MB. Used on the ID card.</div>
         </div>
-
-        <div style="margin-top:12px">
-            <div id="cam-area" class="cam-area">
-              <div class="cam-media">
-                <video id="cam-video" class="cam-video" width="160" height="120" autoplay playsinline></video>
-                <canvas id="cam-canvas" class="cam-canvas" width="160" height="120"></canvas>
-                <img id="cam-preview" class="photo-preview" src="" alt="Preview">
-              </div>
-              <div class="cam-controls">
-                <button type="button" id="cam-start" class="btn">Start camera</button>
-                <button type="button" id="cam-capture" class="btn" style="display:none">Capture</button>
-                <button type="button" id="cam-retake" class="btn btn--ghost" style="display:none">Retake</button>
-                <button type="button" id="cam-stop" class="btn btn--ghost" style="display:none">Stop camera</button>
-              </div>
-              <div style="flex:1">
-                <p class="tiny muted photo-hint">Or upload a file instead. Captured photos are submitted automatically with the form.</p>
-              </div>
-            </div>
-          <input type="hidden" id="photo_data" name="photo_data" value="">
         </div>
       </div>
+
     </div>
-  </div>
 
     <div class="stack">
       <div class="panel">
         <div class="panel__head"><h2>Placement</h2></div>
         <div class="panel__body">
-          <div class="field">
-            <label for="department_id">Department <span class="req">*</span></label>
-            <select id="department_id" name="department_id" required <?= is_admin() ? '' : 'disabled' ?>>
-              <option value="">Choose…</option>
-              <?php foreach ($depts as $d): ?>
-                <option value="<?= (int) $d['id'] ?>" <?= (int) $f['department_id'] === (int) $d['id'] ? 'selected' : '' ?>>
-                  <?= e($d['name']) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-            <?php if (!is_admin()): ?>
-              <input type="hidden" name="department_id" value="<?= (int) my_department() ?>">
-              <div class="hint">You register into your own department.</div>
-            <?php endif; ?>
-          </div>
-
           <?php if (!$isEdit): ?>
             <div class="field">
               <label for="intake">Intake</label>
@@ -266,20 +257,6 @@ if (is_post()) {
                 <?php endfor; ?>
               </select>
               <div class="hint">Determines the intake code in the student number.</div>
-            </div>
-
-            <div class="field">
-              <label for="course_id">Enrol into a course now</label>
-              <select id="course_id" name="course_id">
-                <option value="">Later</option>
-                <?php foreach ($courses as $c):
-                  $left = (int) $c['capacity'] - (int) $c['taken']; ?>
-                  <option value="<?= (int) $c['id'] ?>" <?= $left <= 0 ? 'disabled' : '' ?>>
-                    <?= e($c['code'] . ' — ' . $c['name']) ?><?= $left <= 0 ? ' (full)' : ' (' . $left . ' places)' ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-              <div class="hint">You can enrol into more courses from the student file.</div>
             </div>
           <?php endif; ?>
 
@@ -293,12 +270,7 @@ if (is_post()) {
             <div class="hint">New applications start as <strong>pending</strong> until documents are confirmed.</div>
           </div>
         </div>
-      </div>
-
-      
-
-      <div class="panel">
-        <div class="panel__foot" style="border-top:0">
+        <div class="panel__foot" style="border-top:0; justify-content:flex-start; margin-top:0; padding-top:12px">
           <button class="btn btn--primary" type="submit">
             <?= icon('check', 16) ?> <?= $isEdit ? 'Save changes' : 'Register student' ?>
           </button>

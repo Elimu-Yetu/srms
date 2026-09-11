@@ -68,6 +68,7 @@ function routes(): array
         // ── documents ───────────────────────────────────────────────────────
         'idcards.index' => ['file' => 'idcards_index.php', 'cap' => 'idcards.manage', 'title' => 'Student ID cards'],
         'idcards.print' => ['file' => 'idcards_print.php', 'cap' => 'idcards.manage', 'layout' => 'print', 'title' => 'Print ID cards'],
+        'idcards.act' => ['file' => 'idcards_act.php', 'cap' => 'idcards.manage', 'layout' => 'raw', 'title' => 'ID card action'],
 
         'certificates.index' => ['file' => 'certificates_index.php', 'roles' => ['superadmin', 'admin'], 'title' => 'Certificates'],
         'certificates.issue' => ['file' => 'certificates_issue.php', 'cap' => 'certificates.manage', 'title' => 'Issue a certificate'],
